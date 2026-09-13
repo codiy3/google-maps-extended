@@ -1,0 +1,32 @@
+# Local environments and installed dependencies
+**/.venv/
+**/.uv-cache/
+**/.python/
+**/node_modules/
+**/__pycache__/
+**/*.py[cod]
+
+# Credentials and local configuration
+.env
+.env.*
+**/.env
+**/.env.*
+!.env.example
+!**/.env.example
+*.pem
+*.key
+
+# Generated outputs and caches
+**/dist/
+**/coverage/
+**/.pytest_cache/
+**/.ruff_cache/
+**/.mypy_cache/
+**/.cache/
+**/data/raw/
+**/data/intermediate/
+*.log
+.DS_Store
+
+# Temporary personal tooling
+.tools/
