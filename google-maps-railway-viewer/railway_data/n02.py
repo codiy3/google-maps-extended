@@ -6,8 +6,11 @@ import csv
 import hashlib
 import json
 import math
+import os
 from pathlib import Path
+from tempfile import NamedTemporaryFile
 from typing import Any
+from urllib.request import Request, urlopen
 from zipfile import BadZipFile, ZipFile
 
 SOURCE_PAGE = "https://nlftp.mlit.go.jp/ksj/gml/datalist/KsjTmplt-N02-2025.html"
@@ -20,6 +23,7 @@ MEMBERS = {
     "station": "N02-25_GML/UTF-8/N02-25_Station.geojson",
 }
 MAX_MEMBER_BYTES = 40_000_000
+MAX_ARCHIVE_BYTES = 64_000_000
 
 
 class DataError(ValueError):
@@ -29,6 +33,36 @@ class DataError(ValueError):
 def archive_digest(path: Path) -> str:
     with path.open("rb") as stream:
         return hashlib.file_digest(stream, "sha256").hexdigest()
+
+
+def download_archive(path: Path) -> Path:
+    """取得が完了して検証できたファイルだけを保存する。"""
+    if path.exists():
+        if archive_digest(path) != ARCHIVE_SHA256:
+            raise DataError("保存済みZIPのSHA-256が一致しません。元のファイルを確認してください。")
+        return path
+    path.parent.mkdir(parents=True, exist_ok=True)
+    temporary: Path | None = None
+    try:
+        with NamedTemporaryFile(dir=path.parent, prefix=".n02-download-", delete=False) as stream:
+            temporary = Path(stream.name)
+            request = Request(
+                ARCHIVE_URL, headers={"User-Agent": "google-maps-railway-viewer/0.1.0"}
+            )
+            with urlopen(request, timeout=20) as response:
+                size = 0
+                while chunk := response.read(1024 * 1024):
+                    size += len(chunk)
+                    if size > MAX_ARCHIVE_BYTES:
+                        raise DataError("取得ZIPの容量が想定を超えています。")
+                    stream.write(chunk)
+        if archive_digest(temporary) != ARCHIVE_SHA256:
+            raise DataError("取得ZIPのSHA-256が一致しないため、保存しませんでした。")
+        os.replace(temporary, path)
+        return path
+    finally:
+        if temporary is not None:
+            temporary.unlink(missing_ok=True)
 
 
 def read_archive(path: Path) -> tuple[dict[str, Any], dict[str, Any]]:

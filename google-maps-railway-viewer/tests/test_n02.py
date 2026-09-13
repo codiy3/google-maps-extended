@@ -1,14 +1,18 @@
 import copy
 import csv
+import hashlib
+import io
 import json
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import MagicMock, patch
 
 from railway_data.n02 import (
     SOURCE_CRS,
     DataError,
     build_inventory,
+    download_archive,
     read_archive,
     write_reports,
 )
@@ -130,6 +134,59 @@ class InventoryTests(unittest.TestCase):
             archive.write_bytes(b"not the verified archive")
             with self.assertRaisesRegex(DataError, "SHA-256"):
                 read_archive(archive)
+
+
+class DownloadTests(unittest.TestCase):
+    def test_verified_file_is_reused_without_network(self):
+        content = b"verified fixture"
+        with tempfile.TemporaryDirectory() as directory:
+            target = Path(directory) / "archive.zip"
+            target.write_bytes(content)
+            with (
+                patch("railway_data.n02.ARCHIVE_SHA256", hashlib.sha256(content).hexdigest()),
+                patch("railway_data.n02.urlopen") as request,
+            ):
+                self.assertEqual(download_archive(target), target)
+                request.assert_not_called()
+            self.assertEqual(target.read_bytes(), content)
+
+    def test_existing_unverified_file_is_preserved(self):
+        with tempfile.TemporaryDirectory() as directory:
+            target = Path(directory) / "archive.zip"
+            target.write_bytes(b"existing file")
+            with (
+                patch("railway_data.n02.urlopen") as request,
+                self.assertRaisesRegex(DataError, "保存済み"),
+            ):
+                download_archive(target)
+            request.assert_not_called()
+            self.assertEqual(target.read_bytes(), b"existing file")
+
+    def test_verified_download_is_saved_after_validation(self):
+        content = b"verified fixture"
+        with tempfile.TemporaryDirectory() as directory:
+            target = Path(directory) / "archive.zip"
+            with (
+                patch("railway_data.n02.ARCHIVE_SHA256", hashlib.sha256(content).hexdigest()),
+                patch("railway_data.n02.urlopen", return_value=io.BytesIO(content)),
+            ):
+                download_archive(target)
+            self.assertEqual(target.read_bytes(), content)
+            self.assertEqual(list(Path(directory).iterdir()), [target])
+
+    def test_failed_download_does_not_leave_a_partial_archive(self):
+        interrupted = MagicMock()
+        interrupted.__enter__.return_value = interrupted
+        interrupted.read.side_effect = [b"partial data", OSError("connection interrupted")]
+        for response, error in ((io.BytesIO(b"wrong content"), DataError), (interrupted, OSError)):
+            with self.subTest(error=error), tempfile.TemporaryDirectory() as directory:
+                target = Path(directory) / "archive.zip"
+                with (
+                    patch("railway_data.n02.urlopen", return_value=response),
+                    self.assertRaises(error),
+                ):
+                    download_archive(target)
+                self.assertEqual(list(Path(directory).iterdir()), [])
 
 
 if __name__ == "__main__":

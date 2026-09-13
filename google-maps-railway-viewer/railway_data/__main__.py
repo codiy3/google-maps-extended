@@ -4,18 +4,23 @@ import argparse
 import sys
 from pathlib import Path
 
-from .n02 import DataError, build_inventory, read_archive, write_reports
+from .n02 import DataError, build_inventory, download_archive, read_archive, write_reports
 
 
 def main() -> int:
     parser = argparse.ArgumentParser(
         description="公式N02の収録状況を検証し、全国の調査台帳を生成します。"
     )
-    parser.add_argument("--archive", type=Path, required=True, help="N02-25_GML.zipの保存先")
+    source = parser.add_mutually_exclusive_group(required=True)
+    source.add_argument("--archive", type=Path, help="取得済みN02-25_GML.zipの保存先")
+    source.add_argument("--download", action="store_true", help="公式ZIPを安全に取得・再利用する")
     parser.add_argument("--output", type=Path, default=Path("data/catalog"))
     args = parser.parse_args()
     try:
-        rail, station = read_archive(args.archive)
+        archive = (
+            download_archive(Path("data/raw/N02-25_GML.zip")) if args.download else args.archive
+        )
+        rail, station = read_archive(archive)
         inventory = build_inventory(rail, station)
         write_reports(inventory, args.output)
     except (DataError, OSError) as exc:
