@@ -81,3 +81,40 @@ it('先の駅の遅い応答を新しい駅の所要時間へ混ぜない', asyn
   });
   expect(screen.queryByText('99分')).toBeNull();
 });
+
+it('翌日の到着と検索期間を日本時間の日付付きで表示する', async () => {
+  const route = routeFixture();
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(() =>
+      Promise.resolve(
+        Response.json({
+          originId: 'a',
+          status: 'available',
+          start: '2026-09-13T23:00:00+09:00',
+          end: '2026-09-13T16:00:00Z',
+          rows: [
+            {
+              stationId: 'b',
+              status: 'available',
+              minutes: 30,
+              departure: '2026-09-13T23:50:00+09:00',
+              arrival: '2026-09-14T00:20:00+09:00',
+            },
+          ],
+        }),
+      ),
+    ),
+  );
+  render(
+    <StationDetails
+      route={route}
+      station={route.stations[0]}
+      routes={[]}
+      onNavigate={vi.fn()}
+      serviceIds={[]}
+    />,
+  );
+  expect(await screen.findByText('9/13 23:50発 → 9/14 00:20着')).toBeTruthy();
+  expect(screen.getByText('検索範囲：9/13 23:00〜9/14 01:00（日本時間）')).toBeTruthy();
+});

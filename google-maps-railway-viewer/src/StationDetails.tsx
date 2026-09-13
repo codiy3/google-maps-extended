@@ -1,7 +1,18 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { fetchDurations } from './data';
 import type { DurationResult, RouteDetail, RouteSummary, Station } from './types';
 
+function dateLabel(value?: string) {
+  if (!value || Number.isNaN(Date.parse(value))) return '';
+  return new Intl.DateTimeFormat('ja-JP', {
+    timeZone: 'Asia/Tokyo',
+    month: 'numeric',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    hourCycle: 'h23',
+  }).format(new Date(value));
+}
 function initialTime() {
   const now = new Date();
   return new Date(now.getTime() + 9 * 3600000).toISOString().slice(0, 16);
@@ -27,12 +38,19 @@ export function StationDetails({
   serviceIds: string[];
 }) {
   const [start, setStart] = useState(initialTime);
-  const [result, setResult] = useState<DurationResult | null>(null);
+  const requestKey = JSON.stringify([route.id, station.id, start, serviceIds]);
+  const [response, setResponse] = useState<{ key: string; value: DurationResult } | null>(null);
+  const result = response?.key === requestKey ? response.value : null;
+  const section = useRef<HTMLElement>(null);
+  // biome-ignore lint/correctness/useExhaustiveDependencies: 駅の選択変更時に詳細へスクロールする。
+  useEffect(() => {
+    section.current?.scrollIntoView?.({ block: 'start', behavior: 'smooth' });
+  }, [station.id]);
   const [error, setError] = useState('');
   useEffect(() => {
     const controller = new AbortController();
     let current = true;
-    setResult(null);
+    setResponse(null);
     setError('');
     if (!start || Number.isNaN(Date.parse(`${start}:00+09:00`))) {
       setError('出発日時を入力してください。');
@@ -40,7 +58,7 @@ export function StationDetails({
     }
     fetchDurations(route.id, station.id, `${start}:00+09:00`, serviceIds, controller.signal)
       .then((value) => {
-        if (current) setResult(value);
+        if (current) setResponse({ key: requestKey, value });
       })
       .catch(() => {
         if (current) setError('所要時間を読み込めませんでした。');
@@ -49,13 +67,13 @@ export function StationDetails({
       current = false;
       controller.abort();
     };
-  }, [route.id, station.id, start, serviceIds]);
+  }, [route.id, station.id, start, serviceIds, requestKey]);
   const connections = (station.connections ?? []).flatMap((connection) => {
     const target = routes.find((r) => r.id === connection.routeId);
     return target ? [{ connection, target }] : [];
   });
   return (
-    <section className="station-details" aria-label={`${station.name}の駅詳細`}>
+    <section ref={section} className="station-details" aria-label={`${station.name}の駅詳細`}>
       <div className="eyebrow">STATION</div>
       <h3>{station.name}</h3>
       <h4>乗り換え・直通できる路線</h4>
@@ -71,7 +89,7 @@ export function StationDetails({
                   </small>
                 </span>
                 <span className="connection-kind">
-                  {connection.kind === 'through' ? '直通あり' : '乗り換え'} ↗
+                  {connection.kind === 'through' ? '直通あり' : '乗り換え候補'} ↗
                 </span>
               </button>
             </li>
@@ -106,6 +124,9 @@ export function StationDetails({
               この路線の時刻表は未取得です。距離から所要時間を推定していません。
             </p>
           )}
+          <p className="muted">
+            検索範囲：{dateLabel(result.start)}〜{dateLabel(result.end)}（日本時間）
+          </p>
           {result.note && <p className="muted">{result.note}</p>}
           <ul className="duration-list" aria-label="各駅までの所要時間">
             {route.stations.map((target) => {
@@ -118,7 +139,7 @@ export function StationDetails({
                       <>
                         <strong>{row.minutes}分</strong>
                         <small>
-                          {row.departure?.slice(11, 16)}発 → {row.arrival?.slice(11, 16)}着
+                          {dateLabel(row.departure)}発 → {dateLabel(row.arrival)}着
                           {row.incomplete ? '・未確認便あり' : ''}
                         </small>
                       </>
