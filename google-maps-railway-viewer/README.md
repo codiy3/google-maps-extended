@@ -4,7 +4,7 @@
 
 ## 現在の状態
 
-アプリ本体は未実装です。起動・表示方針の確認後にReactとTypeScriptの実装へ進みます。
+検索・地図の画面は未実装です。起動・表示の基本案は確認済みです。全国データの収録内容を検証するPython処理を追加しました。
 
 Pythonの環境設定はuvで管理します。
 
@@ -16,6 +16,29 @@ uv run --locked python -c 'import sys; print(sys.version); print(sys.executable)
 ```
 
 `.python-version`でPythonを固定し、`.venv`をプロジェクト専用に生成します。uv管理のPythonのみを選択します。
+
+## 全国データの調査台帳を生成する
+
+アプリディレクトリで以下を実行します。初回の取得にはインターネット接続が必要です。
+
+```sh
+uv run --locked python -m railway_data --download
+```
+
+調査済みZIPのSHA-256と照合し、会社・路線別のCSVと集計JSONを`data/catalog/`に出力します。ZIPはGitに含めません。配布元の内容が変更された場合は、検証を省略せず新版の内容と利用条件を確認します。
+
+検証済みの`data/raw/N02-25_GML.zip`があれば再利用します。新規取得は一時ファイルで行い、検証が成功してから保存します。通信失敗や内容の不一致で、不完全なZIPを保存済みファイルに置き換えません。別の場所にある取得済みZIPには`--archive /path/to/N02-25_GML.zip`を使えます。
+
+生成台帳の件数は元データ内の集計で、全国の利用者向け路線や駅の実数ではありません。時刻表や停車駅フィルターは生成しません。収録内容と不足は[データ調査](../docs/data-feasibility.md)を参照してください。
+
+## Pythonの検証
+
+```sh
+uv run --locked ruff format --check railway_data tests
+uv run --locked ruff check railway_data tests
+uv run --locked mypy railway_data tests
+uv run --locked python -m unittest discover -s tests -v
+```
 
 ## 設計資料
 

@@ -1,0 +1,38 @@
+{
+  "source": {
+    "page": "https://nlftp.mlit.go.jp/ksj/gml/datalist/KsjTmplt-N02-2025.html",
+    "archive_url": "https://nlftp.mlit.go.jp/ksj/gml/data/N02/N02-25/N02-25_GML.zip",
+    "sha256": "aaf76af133b2e771e538fabc4646d2e443dc1d5a67b221382a28d744e706cc9f",
+    "data_date": "2025-12-31",
+    "source_crs": "urn:ogc:def:crs:EPSG::6668",
+    "license": "CC-BY-4.0",
+    "notice": "国土数値情報（鉄道データ）（国土交通省）を集計・加工して作成"
+  },
+  "counts": {
+    "rail_features": 21933,
+    "station_features": 10234,
+    "source_operator_names": 177,
+    "source_operator_line_pairs": 597,
+    "source_station_codes": 10154,
+    "source_station_groups": 9046,
+    "extra_station_features": 80
+  },
+  "routes_with_warnings": [
+    {
+      "source_entry_id": "n02-25-b02b9236142adff1",
+      "operator": "三国芦原線",
+      "source_line_name": "えちぜん鉄道",
+      "warnings": [
+        "missing_station_records",
+        "possible_swapped_operator_and_line"
+      ]
+    }
+  ],
+  "release_ready": false,
+  "limitations": [
+    "名称は元データの表記で、利用者向け運行系統との照合は未完了。",
+    "駅コード・駅グループの数は実在する駅の総数ではない。",
+    "都道府県、列車種別、停車パターン、時刻表はN02に含まれない。",
+    "地物を取得できたことは現在の営業状況・接続・所属の検証完了を意味しない。"
+  ]
+}
