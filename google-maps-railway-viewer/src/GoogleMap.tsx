@@ -93,7 +93,7 @@ export function GoogleMap({
       const mapBox = element.getBoundingClientRect();
       const top =
         window.innerWidth <= 800 && search ? Math.max(25, search.bottom - mapBox.top + 15) : 40;
-      map.fitBounds(bounds, { top, right: 30, bottom: 35, left: 30 });
+      map.fitBounds(bounds, { top, right: 70, bottom: 35, left: 70 });
     };
     fitRoute();
     const observer = new ResizeObserver(fitRoute);
@@ -124,7 +124,13 @@ export function GoogleMap({
         title: `${station.name} · ${station.routeNames?.join('・') ?? route.name}`,
         collisionBehavior: google.maps.CollisionBehavior.REQUIRED,
       });
-      marker.append(pin);
+      const content = document.createElement('div');
+      content.className = `station-marker ${current.size % 2 ? 'label-left' : ''}`;
+      const label = document.createElement('span');
+      label.className = 'station-name-label';
+      label.textContent = station.name;
+      content.append(pin, label);
+      marker.append(content);
       listeners.push(marker.addListener('click', () => onSelect(station.id)));
       current.set(station.id, marker);
     }

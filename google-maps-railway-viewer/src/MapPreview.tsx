@@ -76,13 +76,13 @@ export function MapPreview({
           </svg>
           {route.stations
             .filter((s) => visible.has(s.id))
-            .map((station) => {
+            .map((station, index) => {
               const [x, y] = drawing.point(station.position);
               return (
                 <button
                   type="button"
                   key={station.id}
-                  className={`preview-pin ${selected === station.id ? 'selected' : ''} ${visible.get(station.id)}`}
+                  className={`preview-pin ${index % 2 ? 'label-left' : ''} ${selected === station.id ? 'selected' : ''} ${visible.get(station.id)}`}
                   style={{ left: `${x / 9}%`, top: `${y / 9}%` }}
                   title={station.name}
                   aria-label={`${station.name}を選択`}
@@ -97,6 +97,7 @@ export function MapPreview({
                       </text>
                     )}
                   </svg>
+                  <span className="station-name-label">{station.name}</span>
                 </button>
               );
             })}
