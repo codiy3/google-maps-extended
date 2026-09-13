@@ -89,3 +89,7 @@ Pythonはデータの初回生成・更新・検証に利用する。追加さ�
 - [Vite: Server options](https://vite.dev/config/server-options)
 - [Google Maps: API key setup](https://developers.google.com/maps/documentation/javascript/get-api-key)
 - [Google Maps: API security](https://developers.google.com/maps/api-security-best-practices)
+
+## 複数路線とローカルAPIの追加（2026-09-13）
+
+検索で選んだ路線は追加表示する。詳細を開く路線と地図に重ねる路線を分け、他路線を残したまま駅の乗り換え先・直通先へ移動できる。新たにPython標準ライブラリによるローカルAPIとSQLiteを `npm run dev` から起動する。ODPTは必須にせず、登録なしで動作する。通常キーへの切り替えは全実装後とする。詳細は[追加機能と保存条件](connections-and-storage.md)を参照。

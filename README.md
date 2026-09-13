@@ -22,3 +22,5 @@ Google マップを利用した機能拡張を管理するリポジトリです�
 - [設計の自己レビュー記録](docs/reviews/2026-09-13-requirements.md): 指摘・修正コミット・再確認の結果
 
 GitHubの作成先は `codiy3/google-maps-extended`、公開範囲はユーザー指定によりPrivateです。
+
+- [複数路線・接続先・データ保存](docs/connections-and-storage.md)
