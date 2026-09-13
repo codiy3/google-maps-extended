@@ -13,6 +13,7 @@ Google マップを利用した機能拡張を管理するリポジトリです�
 - `google-maps-railway-viewer/`: アプリとデータ処理
 - `docs/requirements.md`: 要件と未確定事項
 - `docs/launch-and-display.md`: 起動・表示方針の提案
+- `docs/route-search.md`: 同名路線・運行系統名の入力候補と選択
 - `docs/development-workflow.md`: コミットと検証の運用
 
 GitHubの作成先は `codiy3/google-maps-extended`、公開範囲はユーザー指定によりPrivateです。

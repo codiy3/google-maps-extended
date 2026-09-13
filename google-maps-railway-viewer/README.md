@@ -21,4 +21,5 @@ uv run --locked python -c 'import sys; print(sys.version); print(sys.executable)
 
 - [要件](../docs/requirements.md)
 - [起動・表示方針](../docs/launch-and-display.md)
+- [路線検索](../docs/route-search.md)
 - [開発手順](../docs/development-workflow.md)
