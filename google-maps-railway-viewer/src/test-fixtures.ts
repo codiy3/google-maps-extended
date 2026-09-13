@@ -13,6 +13,7 @@ export function routeFixture(id = 'test-line-a', operator = 'テスト鉄道A'):
     section: 'テスト用区間',
     stationOrder: 'route',
     stationCount: 3,
+    stationNames: ['始点駅', '中間駅', '終点駅'],
     dataDate: '2025-12-31',
     sources: [],
     services: [],

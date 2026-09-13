@@ -23,7 +23,7 @@ describe('外部地図への接続設定', () => {
     vi.stubEnv('VITE_GOOGLE_MAPS_API_KEY', 'test-placeholder-never-sent');
     vi.stubGlobal(
       'fetch',
-      vi.fn(() => Promise.resolve(Response.json({ schemaVersion: 1, routes: [] }))),
+      vi.fn(() => Promise.resolve(Response.json({ schemaVersion: 2, routes: [] }))),
     );
     render(<App />);
     await screen.findByRole('combobox');
@@ -37,7 +37,7 @@ describe('外部地図への接続設定', () => {
     vi.stubEnv('VITE_GOOGLE_MAPS_MODE', 'google');
     vi.stubGlobal(
       'fetch',
-      vi.fn(() => Promise.resolve(Response.json({ schemaVersion: 1, routes: [] }))),
+      vi.fn(() => Promise.resolve(Response.json({ schemaVersion: 2, routes: [] }))),
     );
     render(<App />);
     await screen.findByRole('combobox');
@@ -50,7 +50,7 @@ describe('路線と表示の同期', () => {
     const route = routeFixture();
     const fetchMock = vi.fn((url: string) =>
       Promise.resolve(
-        Response.json(url.includes('catalog') ? { schemaVersion: 1, routes: [route] } : route),
+        Response.json(url.includes('catalog') ? { schemaVersion: 2, routes: [route] } : route),
       ),
     );
     vi.stubGlobal('fetch', fetchMock);
@@ -76,7 +76,7 @@ describe('路線と表示の同期', () => {
       vi.fn((url: string) => {
         if (url.includes('catalog'))
           return Promise.resolve(
-            Response.json({ schemaVersion: 1, routes: [a, b], notice: 'テスト用' }),
+            Response.json({ schemaVersion: 2, routes: [a, b], notice: 'テスト用' }),
           );
         if (url.includes(a.id))
           return new Promise<Response>((resolve) => {
@@ -115,7 +115,7 @@ describe('路線と表示の同期', () => {
       'fetch',
       vi.fn((url: string) =>
         Promise.resolve(
-          Response.json(url.includes('catalog') ? { schemaVersion: 1, routes: [route] } : route),
+          Response.json(url.includes('catalog') ? { schemaVersion: 2, routes: [route] } : route),
         ),
       ),
     );

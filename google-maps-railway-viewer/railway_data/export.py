@@ -127,8 +127,11 @@ def build_display_data(
     }
     add_yamanote(details, station_lines)
     add_chuo_services(details, station_lines)
+    for route in details.values():
+        # 実際に表示する所属駅から索引を作り、近接だけで路線を追加しない。
+        route["stationNames"] = sorted({s["name"] for s in route["stations"]})
     catalog = {
-        "schemaVersion": 1,
+        "schemaVersion": 2,
         "dataDate": DATA_DATE,
         "releaseReady": False,
         "notice": "国土数値情報（鉄道データ）（国土交通省）を加工して作成",
