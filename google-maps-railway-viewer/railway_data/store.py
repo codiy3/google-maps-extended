@@ -68,12 +68,34 @@ class Store:
         value["storage"] = {"provider": "local", "saved": True}
         return value
 
+    def routes(self) -> list[dict[str, Any]]:
+        with self.connect() as db:
+            rows = db.execute("SELECT payload FROM routes ORDER BY id").fetchall()
+        return [json.loads(row[0]) for row in rows]
+
+    def cache(self, key: str) -> dict[str, Any] | None:
+        with self.connect() as db:
+            row = db.execute("SELECT value FROM metadata WHERE key=?", (key,)).fetchone()
+        return json.loads(row[0]) if row else None
+
+    def save_cache(self, key: str, value: dict[str, Any]) -> None:
+        with self.connect() as db:
+            db.execute(
+                "INSERT OR REPLACE INTO metadata VALUES (?, ?)",
+                (key, json.dumps(value, ensure_ascii=False)),
+            )
+
     def timetable(self, route_id: str) -> dict[str, Any] | None:
         with self.connect() as db:
             row = db.execute(
                 "SELECT payload FROM timetables WHERE route_id=?", (route_id,)
             ).fetchone()
         return json.loads(row[0]) if row else None
+
+    def timetables(self) -> dict[str, Any]:
+        with self.connect() as db:
+            rows = db.execute("SELECT route_id, payload FROM timetables").fetchall()
+        return {row[0]: json.loads(row[1]) for row in rows}
 
     def save_timetable(self, route_id: str, timetable: dict[str, Any]) -> None:
         # 外部プロバイダの正規化後のデータ専用。任意のGoogle応答を受け入れない。

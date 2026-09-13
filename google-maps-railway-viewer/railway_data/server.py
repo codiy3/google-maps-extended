@@ -8,12 +8,15 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import parse_qs, urlsplit
 
+from .journey import JourneyService
 from .n02 import DataError
 from .store import Store
 from .timetable import durations
 
 
 def handler_for(store: Store, directory: Path, token: str) -> type[BaseHTTPRequestHandler]:
+    journeys = JourneyService(store, directory.parent.parent / "data/raw/N02-25_GML.zip")
+
     class Handler(BaseHTTPRequestHandler):
         def log_message(self, format: str, *args: Any) -> None:
             pass  # キー・検索条件をアクセスログへ残さない。
@@ -41,6 +44,21 @@ def handler_for(store: Store, directory: Path, token: str) -> type[BaseHTTPReque
             try:
                 if parts == ["api", "catalog"] and not post:
                     self.send_json(store.catalog())
+                    return
+                if parts == ["api", "stations"] and not post:
+                    self.send_json(journeys.station_catalog())
+                    return
+                if parts == ["api", "journeys"] and post:
+                    if self.headers.get("X-Railway-Request") != "1":
+                        self.send_json({"message": "この操作は許可されていません。"}, 403)
+                        return
+                    length = int(self.headers.get("Content-Length", "0"))
+                    if not 0 < length <= 1_000_000:
+                        raise DataError("検索条件のデータサイズが範囲外です。")
+                    body = json.loads(self.rfile.read(length))
+                    if not isinstance(body, dict):
+                        raise DataError("検索条件の形式を確認してください。")
+                    self.send_json(journeys.search(body))
                     return
                 if len(parts) not in (3, 4) or parts[:2] != ["api", "routes"]:
                     self.send_json({"message": "APIが見つかりません。"}, 404)

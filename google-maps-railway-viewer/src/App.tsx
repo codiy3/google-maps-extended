@@ -1,6 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { fetchCatalog, fetchRoute, restoreRoute } from './data';
 import { GoogleMap } from './GoogleMap';
+import { JourneyPlanner } from './JourneyPlanner';
+import { journeyGeometry, journeyMapCaption, journeyStopLabels } from './journey-map';
+import type { JourneySelection, ServiceFilters } from './journey-types';
 import { MapPreview } from './MapPreview';
 import { mapArrivalLabels } from './map-arrivals';
 import { assignRouteColor, combinedGeometry, combineRoutes, type RouteColors } from './map-data';
@@ -14,6 +17,7 @@ type Load<T> =
   | { status: 'loading' }
   | { status: 'ready'; value: T }
   | { status: 'error'; message: string };
+const noServices: string[] = [];
 
 export default function App() {
   const apiKey = (import.meta.env.VITE_GOOGLE_MAPS_API_KEY || '').trim();
@@ -28,9 +32,38 @@ export default function App() {
   const [detail, setDetail] = useState<Load<RouteDetail>>({ status: 'loading' });
   const [detailAttempt, setDetailAttempt] = useState(0);
   const [selected, setSelected] = useState<string | null>(null);
-  const [serviceIds, setServiceIds] = useState<string[]>([]);
+  const [serviceFilters, setServiceFilters] = useState<ServiceFilters>({});
+  const serviceIds = (choice && serviceFilters[choice.id]) || noServices;
+  const [mode, setMode] = useState<'route' | 'journey'>('route');
+  const [journey, setJourney] = useState<JourneySelection | null>(null);
+  function setServiceIds(value: string[] | ((previous: string[]) => string[])) {
+    if (!choice) return;
+    setServiceFilters((previous) => ({
+      ...previous,
+      [choice.id]: typeof value === 'function' ? value(previous[choice.id] ?? noServices) : value,
+    }));
+  }
   const [expanded, setExpanded] = useState(true);
   const [showSetup, setShowSetup] = useState(false);
+  const panel = useRef<HTMLElement>(null);
+  function scrollPanel(selector?: string) {
+    const container = panel.current;
+    if (!container) return;
+    const target = selector ? container.querySelector<HTMLElement>(selector) : null;
+    const navigationHeight = [
+      ...container.querySelectorAll('.mobile-panel-handle, .panel-section-nav'),
+    ].reduce((height, el) => height + el.getBoundingClientRect().height, 0);
+    container.scrollTo?.({
+      top: target
+        ? target.getBoundingClientRect().top -
+          container.getBoundingClientRect().top +
+          container.scrollTop -
+          navigationHeight -
+          10
+        : 0,
+      behavior: 'smooth',
+    });
+  }
   // biome-ignore lint/correctness/useExhaustiveDependencies: 再試行ボタンの世代番号で取得をやり直す。
   useEffect(() => {
     const controller = new AbortController();
@@ -88,7 +121,6 @@ export default function App() {
     setChoice(route);
     setDetailAttempt((n) => n + 1);
     setDetail({ status: 'loading' });
-    setServiceIds([]);
     setSelected(stationId ?? null);
     setExpanded(true);
   }
@@ -106,13 +138,18 @@ export default function App() {
     () => choices.flatMap((r) => (loaded[r.id] ? [loaded[r.id]] : [])),
     [choices, loaded],
   );
-  const geometry = useMemo(
+  const baseGeometry = useMemo(
     () => combinedGeometry(displayRoutes, routeColors),
     [displayRoutes, routeColors],
   );
+  const geometry = useMemo(
+    () => journeyGeometry(baseGeometry, mode === 'journey' ? journey : null, routeColors),
+    [baseGeometry, mode, journey, routeColors],
+  );
   const mapData = useMemo(
-    () => combineRoutes(displayRoutes, choice?.id, serviceIds, routeColors, geometry),
-    [displayRoutes, choice?.id, serviceIds, geometry, routeColors],
+    () =>
+      combineRoutes(displayRoutes, choice?.id, serviceIds, routeColors, geometry, serviceFilters),
+    [displayRoutes, choice?.id, serviceIds, geometry, routeColors, serviceFilters],
   );
   const mapSelected =
     [...mapData.members].find(([, members]) =>
@@ -120,8 +157,34 @@ export default function App() {
     )?.[0] ?? null;
   const arrivals = useMemo(
     () =>
-      mapArrivalLabels(mapData.members, route?.id, activeStation?.id, times.result, times.error),
-    [mapData.members, route?.id, activeStation?.id, times.result, times.error],
+      activeStation
+        ? mapArrivalLabels(mapData.members, route?.id, activeStation.id, times.result, times.error)
+        : journeyStopLabels(mapData.members, mode === 'journey' ? journey : null),
+    [mapData.members, route?.id, activeStation, times.result, times.error, mode, journey],
+  );
+  const showJourney = useCallback(
+    (selection: JourneySelection | null) => {
+      setJourney(selection);
+      if (!selection || catalog.status !== 'ready') return;
+      const ids = new Set(selection.result.legs?.map((leg) => leg.routeId));
+      if (!ids.size && selection.stops[0]?.members[0])
+        ids.add(selection.stops[0].members[0].routeId);
+      const next = catalog.value.routes.filter((r) => ids.has(r.id));
+      if (!next.length) return;
+      setRouteColors((previous) =>
+        next.reduce((colors, r) => assignRouteColor(colors, r.id), previous),
+      );
+      setChoices((previous) => [
+        ...previous,
+        ...next.filter((r) => !previous.some((p) => p.id === r.id)),
+      ]);
+      setChoice((previous) => (previous && ids.has(previous.id) ? previous : next[0]));
+      setDetailAttempt((n) => n + 1);
+      setDetail({ status: 'loading' });
+      setSelected(null);
+      setExpanded(true);
+    },
+    [catalog],
   );
   const selectMapStation = useCallback(
     (id: string) => {
@@ -132,20 +195,24 @@ export default function App() {
       if (!next) return;
       setChoice(next);
       setDetail({ status: 'ready', value: loaded[next.id] });
-      if (next.id !== choice?.id) setServiceIds([]);
       setSelected(member.stationId);
       setExpanded(true);
     },
     [mapData.members, choices, loaded, choice?.id],
   );
   function removeRoute(id: string) {
+    setServiceFilters((previous) => {
+      const next = { ...previous };
+      delete next[id];
+      return next;
+    });
+    if (journey?.result.legs?.some((leg) => leg.routeId === id)) setJourney(null);
     const remaining = choices.filter((r) => r.id !== id);
     setChoices(remaining);
     if (choice?.id === id) {
       setChoice(remaining.at(-1) ?? null);
       setDetail({ status: 'loading' });
       setSelected(null);
-      setServiceIds([]);
     }
   }
   function throughLinks(position: 'start' | 'end' | 'middle') {
@@ -208,6 +275,21 @@ export default function App() {
           </button>
         </div>
       </header>
+      <nav className="mode-switch" aria-label="検索モード">
+        <button type="button" aria-pressed={mode === 'route'} onClick={() => setMode('route')}>
+          路線検索
+        </button>
+        <button
+          type="button"
+          aria-pressed={mode === 'journey'}
+          onClick={() => {
+            setMode('journey');
+            setExpanded(true);
+          }}
+        >
+          乗換案内
+        </button>
+      </nav>
       {showSetup && (
         <aside className="setup-panel" aria-label="地図の設定とデータについて">
           <div>
@@ -243,7 +325,7 @@ export default function App() {
           </button>
         </aside>
       )}
-      <div className="workspace">
+      <div className="workspace" data-mode={mode}>
         <aside className="sidebar">
           <section className="search-section" aria-label="路線検索">
             <div className="eyebrow">EXPLORE THE RAILWAY</div>
@@ -309,184 +391,218 @@ export default function App() {
             )}
           </section>
           <section
+            ref={panel}
             className={`route-panel ${expanded ? 'expanded' : 'collapsed'}`}
             aria-label="選択路線と駅一覧"
           >
-            {choice ? (
-              <>
+            {(choice || mode === 'journey') && (
+              <button
+                type="button"
+                className="mobile-panel-handle"
+                onClick={() => setExpanded(!expanded)}
+                aria-expanded={expanded}
+              >
+                {mode === 'journey'
+                  ? '乗換案内・路線の詳細'
+                  : `${choice?.name} · ${route ? `${stops.size}駅` : '読み込み'}`}
+                <span>{expanded ? '⌄' : '⌃'}</span>
+              </button>
+            )}
+            {mode === 'journey' && (
+              <nav className="panel-section-nav" aria-label="パネル内の移動">
+                <button type="button" onClick={() => scrollPanel()}>
+                  経路・条件
+                </button>
                 <button
                   type="button"
-                  className="mobile-panel-handle"
-                  onClick={() => setExpanded(!expanded)}
-                  aria-expanded={expanded}
+                  disabled={!route}
+                  onClick={() => scrollPanel('.service-filter')}
                 >
-                  {choice.name} · {route ? `${stops.size}駅` : '読み込み'}{' '}
-                  <span>{expanded ? '⌄' : '⌃'}</span>
+                  列車種別
                 </button>
-                <div className="route-panel-content">
-                  <div className="route-heading">
-                    <div>
-                      <div className="eyebrow">SELECTED LINE</div>
-                      <h2>{choice.name}</h2>
-                      <p>
-                        {choice.operator} · {choice.prefectures.join('・') || '都道府県未確認'}
-                      </p>
-                    </div>
+                <button
+                  type="button"
+                  disabled={!route}
+                  onClick={() => scrollPanel('.station-list-heading')}
+                >
+                  駅一覧
+                </button>
+              </nav>
+            )}
+            {catalog.status === 'ready' && (
+              <JourneyPlanner
+                enabled={mode === 'journey'}
+                routes={catalog.value.routes}
+                filters={serviceFilters}
+                selection={journey}
+                onSelect={showJourney}
+                onNavigate={choose}
+              />
+            )}
+            {choice ? (
+              <div className="route-panel-content">
+                <div className="route-heading">
+                  <div>
+                    <div className="eyebrow">SELECTED LINE</div>
+                    <h2>{choice.name}</h2>
+                    <p>
+                      {choice.operator} · {choice.prefectures.join('・') || '都道府県未確認'}
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    className="text-button"
+                    aria-label="路線の選択を解除"
+                    onClick={() => removeRoute(choice.id)}
+                  >
+                    ×
+                  </button>
+                </div>
+                {detail.status === 'loading' && (
+                  <p className="panel-message" role="status">
+                    駅と線路を読み込み中…
+                  </p>
+                )}
+                {detail.status === 'error' && (
+                  <div className="panel-message" role="alert">
+                    <p>{detail.message}</p>
                     <button
                       type="button"
-                      className="text-button"
-                      aria-label="路線の選択を解除"
-                      onClick={() => removeRoute(choice.id)}
+                      onClick={async () => {
+                        setDetail({ status: 'loading' });
+                        try {
+                          await restoreRoute(choice.id);
+                          cache.current.delete(choice.id);
+                          setDetailAttempt((n) => n + 1);
+                        } catch {
+                          setDetail({
+                            status: 'error',
+                            message:
+                              '復元できませんでした。元データを npm run data:build で再生成してください。',
+                          });
+                        }
+                      }}
                     >
-                      ×
+                      路線を再試行
                     </button>
                   </div>
-                  {detail.status === 'loading' && (
-                    <p className="panel-message" role="status">
-                      駅と線路を読み込み中…
-                    </p>
-                  )}
-                  {detail.status === 'error' && (
-                    <div className="panel-message" role="alert">
-                      <p>{detail.message}</p>
+                )}
+                {route && (
+                  <>
+                    <p className="section-description">{route.section}</p>
+                    {route.storage?.saved && <p className="saved-badge">ローカルDBに保存済み</p>}
+                    {throughLinks('middle')}
+                    {activeStation && catalog.status === 'ready' && (
+                      <StationDetails
+                        route={route}
+                        station={activeStation}
+                        routes={catalog.value.routes}
+                        onNavigate={choose}
+                        times={times}
+                        key={route.id}
+                      />
+                    )}
+                    {route.kind === 'source_railway' && (
+                      <p className="data-note">
+                        基礎データの路線区分です。案内上の運行系統とは異なる場合があります。
+                      </p>
+                    )}
+                    <div className="service-filter">
+                      <div className="filter-title">
+                        <h3>列車の種類</h3>
+                        <span>種別順</span>
+                      </div>
                       <button
                         type="button"
-                        onClick={async () => {
-                          setDetail({ status: 'loading' });
-                          try {
-                            await restoreRoute(choice.id);
-                            cache.current.delete(choice.id);
-                            setDetailAttempt((n) => n + 1);
-                          } catch {
-                            setDetail({
-                              status: 'error',
-                              message:
-                                '復元できませんでした。元データを npm run data:build で再生成してください。',
-                            });
-                          }
+                        className={`filter-chip ${serviceIds.length === 0 ? 'active' : ''}`}
+                        aria-pressed={serviceIds.length === 0}
+                        onClick={() => {
+                          setServiceIds([]);
+                          setSelected(null);
                         }}
                       >
-                        路線を再試行
+                        全駅
                       </button>
-                    </div>
-                  )}
-                  {route && (
-                    <>
-                      <p className="section-description">{route.section}</p>
-                      {route.storage?.saved && <p className="saved-badge">ローカルDBに保存済み</p>}
-                      {throughLinks('middle')}
-                      {activeStation && catalog.status === 'ready' && (
-                        <StationDetails
-                          route={route}
-                          station={activeStation}
-                          routes={catalog.value.routes}
-                          onNavigate={choose}
-                          times={times}
-                          key={route.id}
-                        />
-                      )}
-                      {route.kind === 'source_railway' && (
-                        <p className="data-note">
-                          基礎データの路線区分です。案内上の運行系統とは異なる場合があります。
-                        </p>
-                      )}
-                      <div className="service-filter">
-                        <div className="filter-title">
-                          <h3>列車の種類</h3>
-                          <span>種別順</span>
-                        </div>
-                        <button
-                          type="button"
-                          className={`filter-chip ${serviceIds.length === 0 ? 'active' : ''}`}
-                          aria-pressed={serviceIds.length === 0}
-                          onClick={() => {
-                            setServiceIds([]);
-                            setSelected(null);
-                          }}
+                      {sortServices(route.services).map((service) => (
+                        <label
+                          key={service.id}
+                          className={`filter-chip ${serviceIds.includes(service.id) ? 'active' : ''}`}
                         >
-                          全駅
-                        </button>
-                        {sortServices(route.services).map((service) => (
-                          <label
-                            key={service.id}
-                            className={`filter-chip ${serviceIds.includes(service.id) ? 'active' : ''}`}
-                          >
-                            <input
-                              type="checkbox"
-                              checked={serviceIds.includes(service.id)}
-                              onChange={() => toggleService(service.id)}
-                            />
-                            {service.name}
-                            {service.rank === null ? '（順位未確認）' : ''}
-                          </label>
-                        ))}
-                        {route.serviceStatus === 'unavailable' && (
-                          <p className="muted">この路線の種別・停車パターンは未取得です。</p>
-                        )}
-                        <p className="timetable-note">
-                          駅を選ぶと、乗り換え先と各駅までの所要時間を確認できます。
-                        </p>
-                        {serviceIds.length > 0 && (
-                          <p className="muted">
-                            選択した種類の停車駅をまとめています。一部停車・未確認はピンの形と文字で区別します。
-                          </p>
-                        )}
-                      </div>
-                      <div className="station-list-heading">
-                        <h3>
-                          表示する駅 <span>{stops.size}</span>
-                        </h3>
-                        <span>
-                          {route.stationOrder === 'route' ? '路線順' : '駅名順・停車順未確認'}
-                        </span>
-                      </div>
-                      {throughLinks('start')}
-                      <ul className="station-list" aria-label="駅一覧">
-                        {route.stations
-                          .filter((station) => stops.has(station.id))
-                          .map((station, index) => (
-                            <li key={station.id}>
-                              <button
-                                type="button"
-                                className={selected === station.id ? 'selected' : ''}
-                                aria-pressed={selected === station.id}
-                                onClick={() => selectStation(station.id)}
-                              >
-                                <span className="station-number">
-                                  {route.stationOrder === 'route'
-                                    ? String(index + 1).padStart(2, '0')
-                                    : '•'}
-                                </span>
-                                <span className="station-name">
-                                  {station.name}
-                                  {serviceIds.length > 0 && (
-                                    <small>{stopLabels[stops.get(station.id) ?? 'unknown']}</small>
-                                  )}
-                                </span>
-                                <span aria-hidden="true">↗</span>
-                              </button>
-                            </li>
-                          ))}
-                      </ul>
-                      {throughLinks('end')}
-                      {stops.size === 0 && (
-                        <p className="panel-message">
-                          選択した種類で停車を確認できる駅がありません。
+                          <input
+                            type="checkbox"
+                            checked={serviceIds.includes(service.id)}
+                            onChange={() => toggleService(service.id)}
+                          />
+                          {service.name}
+                          {service.rank === null ? '（順位未確認）' : ''}
+                        </label>
+                      ))}
+                      {route.serviceStatus === 'unavailable' && (
+                        <p className="muted">この路線の種別・停車パターンは未取得です。</p>
+                      )}
+                      <p className="timetable-note">
+                        駅を選ぶと、乗り換え先と各駅までの所要時間を確認できます。
+                      </p>
+                      {serviceIds.length > 0 && (
+                        <p className="muted">
+                          選択した種類の停車駅をまとめています。一部停車・未確認はピンの形と文字で区別します。
                         </p>
                       )}
-                      <footer className="route-sources">
-                        <span>鉄道データ基準日：{route.dataDate}</span>
-                        {route.sources.map((source) => (
-                          <a key={source.url} href={source.url} target="_blank" rel="noreferrer">
-                            {source.title} ↗
-                          </a>
+                    </div>
+                    <div className="station-list-heading">
+                      <h3>
+                        表示する駅 <span>{stops.size}</span>
+                      </h3>
+                      <span>
+                        {route.stationOrder === 'route' ? '路線順' : '駅名順・停車順未確認'}
+                      </span>
+                    </div>
+                    {throughLinks('start')}
+                    <ul className="station-list" aria-label="駅一覧">
+                      {route.stations
+                        .filter((station) => stops.has(station.id))
+                        .map((station, index) => (
+                          <li key={station.id}>
+                            <button
+                              type="button"
+                              className={selected === station.id ? 'selected' : ''}
+                              aria-pressed={selected === station.id}
+                              onClick={() => selectStation(station.id)}
+                            >
+                              <span className="station-number">
+                                {route.stationOrder === 'route'
+                                  ? String(index + 1).padStart(2, '0')
+                                  : '•'}
+                              </span>
+                              <span className="station-name">
+                                {station.name}
+                                {serviceIds.length > 0 && (
+                                  <small>{stopLabels[stops.get(station.id) ?? 'unknown']}</small>
+                                )}
+                              </span>
+                              <span aria-hidden="true">↗</span>
+                            </button>
+                          </li>
                         ))}
-                      </footer>
-                    </>
-                  )}
-                </div>
-              </>
-            ) : (
+                    </ul>
+                    {throughLinks('end')}
+                    {stops.size === 0 && (
+                      <p className="panel-message">
+                        選択した種類で停車を確認できる駅がありません。
+                      </p>
+                    )}
+                    <footer className="route-sources">
+                      <span>鉄道データ基準日：{route.dataDate}</span>
+                      {route.sources.map((source) => (
+                        <a key={source.url} href={source.url} target="_blank" rel="noreferrer">
+                          {source.title} ↗
+                        </a>
+                      ))}
+                    </footer>
+                  </>
+                )}
+              </div>
+            ) : mode === 'route' ? (
               <div className="empty-selection">
                 <span aria-hidden="true">◎</span>
                 <p>
@@ -495,13 +611,16 @@ export default function App() {
                   駅の一覧がここに表示されます。
                 </p>
               </div>
-            )}
+            ) : null}
           </section>
           <footer className="sidebar-footer">
             全国の基礎データを収録 · 運行系統の照合を継続中
           </footer>
         </aside>
         <section className="map-area" aria-label="沿線の地図">
+          {mode === 'journey' && journey && (
+            <div className="journey-map-caption">{journeyMapCaption(journey)}</div>
+          )}
           {useGoogleMap ? (
             <GoogleMap
               apiKey={apiKey}

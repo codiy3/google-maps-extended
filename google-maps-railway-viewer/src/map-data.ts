@@ -53,6 +53,7 @@ export function combineRoutes(
   serviceIds: string[],
   colors: RouteColors = {},
   geometry = combinedGeometry(routes, colors),
+  filters: Readonly<Record<string, string[]>> = {},
 ) {
   const groups = new Map<string, string>();
   function root(id: string): string {
@@ -71,7 +72,10 @@ export function combineRoutes(
   const visible = new Map<string, StopState>();
   const stations = new Map<string, RouteDetail['stations'][number]>();
   for (const route of routes) {
-    const stops = displayedStops(route, route.id === activeId ? serviceIds : []);
+    const stops = displayedStops(
+      route,
+      filters[route.id] ?? (route.id === activeId ? serviceIds : []),
+    );
     for (const station of route.stations) {
       if (!stops.has(station.id)) continue;
       const id = root(station.groupIds?.[0] ?? `${route.id}:${station.id}`);

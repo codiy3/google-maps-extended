@@ -773,6 +773,218 @@ p {
 .mobile-panel-handle {
   display: none;
 }
+.mode-switch {
+  display: flex;
+  gap: 8px;
+  padding: 7px 26px;
+  background: #fff;
+  border-bottom: 1px solid #dde4d9;
+}
+.mode-switch button {
+  padding: 7px 22px;
+  font-weight: 600;
+  font-size: 12px;
+}
+.mode-switch button[aria-pressed="true"] {
+  color: #fff;
+  background: #235d43;
+  border-color: #235d43;
+}
+[data-mode="journey"] .search-section > h1,
+[data-mode="journey"] .search-section > .eyebrow,
+[data-mode="journey"] .search-hint {
+  display: none;
+}
+[data-mode="journey"] .search-section {
+  padding-top: 16px;
+  padding-bottom: 16px;
+}
+.journey-planner {
+  padding: 22px 26px;
+  border-bottom: 1px solid #dde4d9;
+}
+.panel-section-nav {
+  position: sticky;
+  top: 0;
+  z-index: 4;
+  display: flex;
+  gap: 6px;
+  padding: 8px 23px;
+  background: #fff;
+  border-bottom: 1px solid #e1e8df;
+}
+.panel-section-nav button {
+  padding: 6px 10px;
+  font-size: 11px;
+}
+:where([data-mode="journey"]) .station-details {
+  scroll-margin-top: 50px;
+}
+.journey-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 18px;
+}
+.journey-title h2 {
+  font-size: 21px;
+  margin: 0;
+}
+.journey-title button,
+.waypoint-controls button,
+.add-waypoint {
+  padding: 6px 10px;
+  font-size: 11px;
+}
+.journey-point {
+  margin: 14px 0;
+}
+.station-field {
+  border: 0;
+  padding: 0;
+  margin: 0;
+  min-width: 0;
+}
+.station-field > label,
+.journey-settings label {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+}
+.station-field > input,
+.journey-settings input {
+  width: 100%;
+  min-width: 0;
+  border: 1px solid #b9cbbb;
+  border-radius: 8px;
+  padding: 11px 12px;
+  margin-top: 6px;
+  color: #233d33;
+  background: #fafcf9;
+}
+.station-candidates {
+  max-height: 230px;
+  overflow: auto;
+  border: 1px solid #b9cbbb;
+  border-radius: 8px;
+  box-shadow: 0 3px 10px #20382812;
+  margin-top: 4px;
+}
+.station-candidates [role="option"] {
+  padding: 10px 12px;
+  cursor: pointer;
+  border-bottom: 1px solid #e6ece5;
+}
+.station-candidates [role="option"]:hover,
+.station-candidates [aria-selected="true"] {
+  background: #edf4eb;
+}
+.station-candidates small,
+.chosen-station-context {
+  display: block;
+  font-size: 10px;
+  color: #667568;
+  line-height: 1.6;
+  margin-top: 4px;
+}
+.station-candidates p {
+  padding: 12px;
+  margin: 0;
+  font-size: 11px;
+}
+.waypoint-controls {
+  display: flex;
+  gap: 6px;
+  justify-content: flex-end;
+  margin-top: 6px;
+}
+.journey-planner button:disabled {
+  cursor: default;
+  opacity: 0.65;
+}
+.journey-settings {
+  display: grid;
+  gap: 13px;
+  margin: 19px 0 10px;
+}
+.journey-planner .muted,
+.journey-planner [role="status"],
+.journey-planner [role="alert"] {
+  font-size: 11px;
+  line-height: 1.7;
+}
+.journey-submit {
+  width: 100%;
+  color: #fff;
+  background: #235d43;
+  border: 0;
+  font-weight: 600;
+}
+.journey-submit:hover {
+  background: #194a33;
+}
+.journey-summary {
+  line-height: 1.8;
+  font-weight: 600;
+}
+.journey-summary small {
+  display: block;
+  font-weight: 400;
+  color: #667568;
+}
+.journey-results {
+  display: grid;
+  gap: 10px;
+  margin: 17px 0;
+}
+.journey-option > button {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  text-align: left;
+}
+.journey-option > button[aria-pressed="true"] {
+  background: #e6f1e8;
+  border: 2px solid #357751;
+}
+.journey-option :where(button) span {
+  font-size: 12px;
+}
+.journey-option p {
+  font-size: 10px;
+  line-height: 1.7;
+  color: #667568;
+  margin: 7px 0 0;
+}
+.journey-legs {
+  padding-left: 23px;
+  margin: 18px 0 0;
+  font-size: 12px;
+}
+.journey-legs li {
+  padding: 9px 0;
+  border-bottom: 1px solid #e6ece5;
+}
+.journey-legs button,
+.journey-legs small {
+  display: block;
+  font-size: 11px;
+  margin-top: 6px;
+}
+.journey-map-caption {
+  position: absolute;
+  bottom: 58px;
+  left: 15px;
+  z-index: 2;
+  pointer-events: none;
+  background: #fffffff2;
+  border-radius: 6px;
+  padding: 7px 10px;
+  font-size: 10px;
+}
 .sr-only {
   position: absolute;
   width: 1px;
@@ -900,6 +1112,27 @@ p {
   }
   .workspace:has(.route-panel.expanded .route-heading) .map-area {
     height: 56%;
+  }
+  .workspace[data-mode="journey"]:has(.route-panel.expanded) .map-area {
+    height: 56%;
+  }
+  .workspace[data-mode="journey"]:has(.route-panel.collapsed) .map-area {
+    height: calc(100% - 49px);
+  }
+  .mode-switch {
+    padding: 6px 18px;
+  }
+  .mode-switch button {
+    flex: 1;
+  }
+  .journey-planner {
+    padding: 18px 23px;
+  }
+  .panel-section-nav {
+    top: 47px;
+  }
+  :where([data-mode="journey"]) .station-details {
+    scroll-margin-top: 95px;
   }
   .workspace:has(.route-panel.collapsed .route-heading) .map-area {
     height: calc(100% - 49px);

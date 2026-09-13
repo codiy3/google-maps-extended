@@ -42,6 +42,8 @@ export interface RouteDetail extends RouteSummary {
   geometry: {
     id: string;
     coordinates: Position[];
+    opacity?: number;
+    context?: boolean;
     color?: string;
     strokeWeight?: number;
     zIndex?: number;

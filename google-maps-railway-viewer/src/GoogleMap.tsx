@@ -1,15 +1,6 @@
-import { importLibrary, setOptions } from '@googlemaps/js-api-loader';
 import { useEffect, useRef, useState } from 'react';
+import { loadMaps } from './maps-loader';
 import type { RouteDetail, StopState } from './types';
-
-let loading: Promise<void> | undefined;
-function loadMaps(key: string) {
-  if (!loading) {
-    setOptions({ key, v: 'quarterly', language: 'ja', region: 'JP' });
-    loading = Promise.all([importLibrary('maps'), importLibrary('marker')]).then(() => {});
-  }
-  return loading;
-}
 
 export function GoogleMap({
   apiKey,
@@ -83,14 +74,15 @@ export function GoogleMap({
           map,
           path: segment.coordinates.map(([lng, lat]) => ({ lng, lat })),
           strokeColor: segment.color ?? '#18834b',
-          strokeOpacity: 0.95,
+          strokeOpacity: segment.opacity ?? 0.95,
           strokeWeight: segment.strokeWeight ?? 5,
           zIndex: segment.zIndex,
           clickable: false,
         }),
     );
     const bounds = new google.maps.LatLngBounds();
-    for (const segment of geometry)
+    const focus = geometry.filter((g) => !g.context);
+    for (const segment of focus.length ? focus : geometry)
       for (const [lng, lat] of segment.coordinates) bounds.extend({ lng, lat });
     const fitRoute = () => {
       const element = container.current;
