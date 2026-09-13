@@ -42,7 +42,7 @@ export default function App() {
       controller.abort();
     };
   }, [catalogAttempt]);
-  // biome-ignore lint/correctness/useExhaustiveDependencies: 路線の取得失敗時にも同じIDで再試行する。
+  // biome-ignore lint/correctness/useExhaustiveDependencies: 同じ路線の再選択・再試行も取得世代で区別する。
   useEffect(() => {
     if (!choice) return;
     const controller = new AbortController();
@@ -65,6 +65,7 @@ export default function App() {
   }, [choice, detailAttempt]);
   function choose(route: RouteSummary) {
     setChoice(route);
+    setDetailAttempt((n) => n + 1);
     setDetail({ status: 'loading' });
     setServiceIds([]);
     setSelected(null);

@@ -9,6 +9,27 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 describe('路線と表示の同期', () => {
+  it('同じ路線を選び直しても駅と線路を再表示する', async () => {
+    const route = routeFixture();
+    const fetchMock = vi.fn((url: string) =>
+      Promise.resolve(
+        Response.json(url.includes('catalog') ? { schemaVersion: 1, routes: [route] } : route),
+      ),
+    );
+    vi.stubGlobal('fetch', fetchMock);
+    render(<App />);
+    const input = await screen.findByRole('combobox');
+    fireEvent.change(input, { target: { value: '中央線' } });
+    fireEvent.click(screen.getByRole('option'));
+    await screen.findByRole('img', { name: '中央線の線路形状' });
+    fireEvent.change(input, { target: { value: '中央' } });
+    fireEvent.click(screen.getByRole('option'));
+    await screen.findByRole('img', { name: '中央線の線路形状' });
+    expect(fetchMock.mock.calls.filter(([url]) => !url.includes('catalog'))).toHaveLength(2);
+    expect(
+      within(screen.getByRole('list', { name: '駅一覧' })).getAllByRole('button'),
+    ).toHaveLength(3);
+  });
   it('連続選択した古い取得結果で新しい路線を上書きしない', async () => {
     const a = routeFixture();
     const b = { ...routeFixture('test-b', 'テスト鉄道B'), name: '第二線', aliases: [] };
