@@ -94,7 +94,9 @@ export function GoogleMap({
       map.fitBounds(bounds, { top, right: 70, bottom: 35, left: 70 });
     };
     fitRoute();
-    const observer = new ResizeObserver(fitRoute);
+    const observer = new ResizeObserver(() => {
+      if (!container.current?.querySelector('.station-info-heading')) fitRoute();
+    });
     if (container.current) observer.observe(container.current);
     return () => {
       observer.disconnect();
@@ -167,7 +169,7 @@ export function GoogleMap({
     if (!map || !route || !selected) return;
     const station = route.stations.find((s) => s.id === selected);
     if (!station || !visible.has(selected)) return;
-    map.panTo({ lng: station.position[0], lat: station.position[1] });
+    map.setCenter({ lng: station.position[0], lat: station.position[1] });
     const content = document.createElement('div');
     content.className = 'station-info-body';
     content.textContent = station.routeNames?.join(' / ') ?? route.operator;
@@ -183,9 +185,68 @@ export function GoogleMap({
       ariaLabel: header.textContent,
       maxWidth: 300,
     });
+    // Googleの自動パンでは、地図の上に重なるアプリの検索欄を避けられない。
+    let frame = 0;
+    let checkAfterPan = false;
+    let moving = false;
+    let attempts = 0;
+    const revealHeading = () => {
+      const mapBox = container.current?.getBoundingClientRect();
+      const search = document.querySelector('.search-section')?.getBoundingClientRect();
+      const card = document.querySelector('.station-card')?.getBoundingClientRect();
+      if (moving || !header.isConnected || !mapBox || attempts >= 3) return;
+      const heading = header.getBoundingClientRect();
+      if (!heading.height) return;
+      const overlaps = (box: DOMRect) =>
+        box.right > mapBox.left &&
+        box.left < mapBox.right &&
+        box.bottom > mapBox.top &&
+        box.top < mapBox.bottom;
+      const top = Math.max(mapBox.top, search && overlaps(search) ? search.bottom : 0) + 8;
+      const bottom = Math.min(mapBox.bottom - 30, card && overlaps(card) ? card.top - 8 : Infinity);
+      // 自分で生成した見出し・本文を測り、閉じるボタンと吹き出しの余白も含める。
+      const popupTop = heading.top - 24;
+      const popupBottom = content.getBoundingClientRect().bottom + 20;
+      const offset =
+        popupTop < top || popupBottom - popupTop > bottom - top
+          ? popupTop - top
+          : Math.max(0, popupBottom - bottom);
+      if (Math.abs(offset) > 1) {
+        moving = true;
+        attempts += 1;
+        checkAfterPan = true;
+        map.panBy(0, offset);
+      }
+    };
+    const scheduleReveal = () => {
+      checkAfterPan = true;
+      attempts = 0;
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(revealHeading);
+    };
+    const shown = info.addListener('visible', scheduleReveal);
+    const movingListener = map.addListener('bounds_changed', () => {
+      moving = true;
+    });
+    const idle = map.addListener('idle', () => {
+      moving = false;
+      if (!checkAfterPan) return;
+      checkAfterPan = false;
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(revealHeading);
+    });
+    const layout = new ResizeObserver(scheduleReveal);
+    if (container.current) layout.observe(container.current);
+    const searchElement = document.querySelector('.search-section');
+    if (searchElement) layout.observe(searchElement);
     const listener = info.addListener('close', () => onClear?.());
     info.open({ map, anchor: markers.current.get(selected), shouldFocus: false });
     return () => {
+      cancelAnimationFrame(frame);
+      layout.disconnect();
+      shown.remove();
+      movingListener.remove();
+      idle.remove();
       listener.remove();
       info.close();
     };
