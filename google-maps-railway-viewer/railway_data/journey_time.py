@@ -63,11 +63,7 @@ def earliest_arrival(
             for service_date in trip["serviceDates"]:
                 day = datetime.fromisoformat(service_date).replace(tzinfo=JST)
                 for index, origin in enumerate(trip["stops"]):
-                    if (
-                        origin["precision"] != "exact"
-                        or not origin["pickup"]
-                        or not origin.get("departure")
-                    ):
+                    if origin["precision"] != "exact" or not origin.get("departure"):
                         continue
                     departure = day + timedelta(seconds=seconds(origin["departure"]))
                     if not start <= departure < horizon:
@@ -86,6 +82,7 @@ def earliest_arrival(
                                 "tripId": trip["id"],
                                 "tripKey": f"{route_id}/{trip['id']}/{service_date}",
                                 "serviceId": trip["serviceId"],
+                                "pickup": origin["pickup"],
                                 "fromStationId": origin["stationId"],
                                 "toStationId": target["stationId"],
                                 "fromGroup": station_groups[(route_id, origin["stationId"])],
@@ -120,6 +117,8 @@ def earliest_arrival(
             break
         first = bisect.bisect_left(departures.get(group, []), at)
         for event in events[group][first:]:
+            if not event["pickup"] and last_trip != event["tripKey"]:
+                continue
             ready = at + (
                 transfer_minutes * 60 if last_trip and last_trip != event["tripKey"] else 0
             )

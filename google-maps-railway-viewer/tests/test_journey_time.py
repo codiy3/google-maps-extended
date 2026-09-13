@@ -68,6 +68,13 @@ class JourneyTimeTests(unittest.TestCase):
         self.assertEqual(result["legs"], [])
         self.assertEqual(self.search(["a", "b", "a"], tables={})["status"], "unavailable")
 
+    def test_dropoff_only_waypoint_allows_continuing_but_not_new_boarding(self):
+        table = self.tables["test"]
+        table["trips"][0]["stops"][1]["pickup"] = False
+        continuing = self.search(["a", "b", "c"], tables={"test": table})
+        self.assertEqual(continuing["minutes"], 40)
+        self.assertEqual(self.search(["b", "c"], tables={"test": table})["status"], "unavailable")
+
 
 if __name__ == "__main__":
     unittest.main()
