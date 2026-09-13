@@ -6,6 +6,7 @@ export interface Station {
   position: Position;
   sourceCodes: string[];
   groupIds?: string[];
+  routeNames?: string[];
   connections?: Connection[];
 }
 export interface TrainService {

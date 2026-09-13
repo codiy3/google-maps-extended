@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { fetchCatalog, fetchRoute, restoreRoute } from './data';
 import { GoogleMap } from './GoogleMap';
 import { MapPreview } from './MapPreview';
-import { combineRoutes } from './map-data';
+import { combinedGeometry, combineRoutes } from './map-data';
 import { SearchBox } from './SearchBox';
 import { StationDetails } from './StationDetails';
 import { displayedStops, sortServices, stopLabels } from './services';
@@ -100,10 +100,12 @@ export default function App() {
     () => choices.flatMap((r) => (loaded[r.id] ? [loaded[r.id]] : [])),
     [choices, loaded],
   );
-  const mapData = useMemo(
-    () => combineRoutes(displayRoutes, choice?.id, serviceIds),
-    [displayRoutes, choice?.id, serviceIds],
-  );
+  const geometry = useMemo(() => combinedGeometry(displayRoutes), [displayRoutes]);
+  const mapData = useMemo(() => {
+    const combined = combineRoutes(displayRoutes, choice?.id, serviceIds);
+    if (combined.route) combined.route.geometry = geometry;
+    return combined;
+  }, [displayRoutes, choice?.id, serviceIds, geometry]);
   const mapSelected =
     [...mapData.members].find(([, members]) =>
       members.some((m) => m.routeId === choice?.id && m.stationId === selected),

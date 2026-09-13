@@ -64,14 +64,15 @@ export function GoogleMap({
     };
   }, [apiKey]);
 
+  const geometry = route?.geometry;
   useEffect(() => {
     if (!map) return;
-    if (!route) {
+    if (!geometry?.length) {
       map.setCenter({ lat: 36.2, lng: 138.25 });
       map.setZoom(5);
       return;
     }
-    const lines = route.geometry.map(
+    const lines = geometry.map(
       (segment) =>
         new google.maps.Polyline({
           map,
@@ -83,19 +84,25 @@ export function GoogleMap({
         }),
     );
     const bounds = new google.maps.LatLngBounds();
-    for (const segment of route.geometry)
+    for (const segment of geometry)
       for (const [lng, lat] of segment.coordinates) bounds.extend({ lng, lat });
-    for (const station of route.stations)
-      bounds.extend({ lng: station.position[0], lat: station.position[1] });
-    if (!bounds.isEmpty())
-      map.fitBounds(
-        bounds,
-        window.innerWidth <= 800 ? { top: 180, right: 35, bottom: 40, left: 35 } : 50,
-      );
+    const fitRoute = () => {
+      const element = container.current;
+      if (!element || bounds.isEmpty()) return;
+      const search = document.querySelector('.search-section')?.getBoundingClientRect();
+      const mapBox = element.getBoundingClientRect();
+      const top =
+        window.innerWidth <= 800 && search ? Math.max(25, search.bottom - mapBox.top + 15) : 40;
+      map.fitBounds(bounds, { top, right: 30, bottom: 35, left: 30 });
+    };
+    fitRoute();
+    const observer = new ResizeObserver(fitRoute);
+    if (container.current) observer.observe(container.current);
     return () => {
+      observer.disconnect();
       for (const line of lines) line.setMap(null);
     };
-  }, [map, route]);
+  }, [map, geometry]);
 
   useEffect(() => {
     if (!map || !route) return;
@@ -105,6 +112,7 @@ export function GoogleMap({
       const state = visible.get(station.id);
       if (!state) continue;
       const pin = new google.maps.marker.PinElement({
+        scale: 0.65,
         background: state === 'conditional' ? '#fff' : '#d63235',
         borderColor: '#b8222b',
         glyphColor: '#fff',
@@ -113,7 +121,7 @@ export function GoogleMap({
       const marker = new google.maps.marker.AdvancedMarkerElement({
         map,
         position: { lng: station.position[0], lat: station.position[1] },
-        title: `${station.name} · ${route.name}`,
+        title: `${station.name} · ${station.routeNames?.join('・') ?? route.name}`,
         collisionBehavior: google.maps.CollisionBehavior.REQUIRED,
       });
       marker.append(pin);
@@ -134,7 +142,7 @@ export function GoogleMap({
     if (!station || !visible.has(selected)) return;
     map.panTo({ lng: station.position[0], lat: station.position[1] });
     const content = document.createElement('div');
-    content.textContent = `${station.name} · ${route.operator}`;
+    content.textContent = `${station.name} · ${station.routeNames?.join('・') ?? route.operator}`;
     const info = new google.maps.InfoWindow({ content });
     info.open({ map, anchor: markers.current.get(selected), shouldFocus: false });
     return () => info.close();

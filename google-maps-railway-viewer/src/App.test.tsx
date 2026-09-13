@@ -134,3 +134,27 @@ describe('路線と表示の同期', () => {
     expect(within(list).getAllByRole('button')).toHaveLength(3);
   });
 });
+
+it('Google地図の線形参照は種別フィルター変更で作り直さない', async () => {
+  vi.stubEnv('VITE_GOOGLE_MAPS_MODE', 'google');
+  vi.stubEnv('VITE_GOOGLE_MAPS_API_KEY', 'test-placeholder-never-sent');
+  const route = routeFixture();
+  route.services = [
+    { id: 'fast', name: '架空快速', rank: 1, stops: { a: 'common', b: 'none', c: 'common' } },
+  ];
+  vi.stubGlobal(
+    'fetch',
+    vi.fn((url: string) =>
+      Promise.resolve(
+        Response.json(url.includes('catalog') ? { schemaVersion: 3, routes: [route] } : route),
+      ),
+    ),
+  );
+  render(<App />);
+  fireEvent.change(await screen.findByRole('combobox'), { target: { value: '中央線' } });
+  fireEvent.click(screen.getByRole('option'));
+  await screen.findByRole('list', { name: '駅一覧' });
+  const before = vi.mocked(GoogleMap).mock.calls.at(-1)?.[0].route?.geometry;
+  fireEvent.click(screen.getByRole('checkbox', { name: '架空快速' }));
+  expect(vi.mocked(GoogleMap).mock.calls.at(-1)?.[0].route?.geometry).toBe(before);
+});

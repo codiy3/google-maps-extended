@@ -37,3 +37,16 @@ describe('複数路線のピンと選択先', () => {
     expect(result.members.get('same')).toEqual([{ routeId: 'b', stationId: 'a' }]);
   });
 });
+
+it('ピンの路線名は所属する路線だけで構成する', () => {
+  const a = routeFixture('a', '会社A');
+  const b = { ...routeFixture('b', '会社B'), name: '第二線' };
+  a.stations[0].groupIds = ['shared'];
+  b.stations[0].groupIds = ['shared'];
+  const { route } = combineRoutes([a, b], 'a', []);
+  expect(route?.stations.find((s) => s.id === 'shared')?.routeNames).toEqual([
+    '会社A 中央線',
+    '会社B 第二線',
+  ]);
+  expect(route?.stations.find((s) => s.id === 'a:b')?.routeNames).toEqual(['会社A 中央線']);
+});

@@ -6,6 +6,10 @@ export interface Membership {
   stationId: string;
 }
 
+export function combinedGeometry(routes: RouteDetail[]) {
+  return routes.flatMap((r) => r.geometry.map((g) => ({ ...g, id: `${r.id}:${g.id}` })));
+}
+
 /** 同一駅グループのピンは共有し、クリック元から所属路線へ戻れるようにする。 */
 export function combineRoutes(
   routes: RouteDetail[],
@@ -35,10 +39,13 @@ export function combineRoutes(
       const id = root(station.groupIds?.[0] ?? `${route.id}:${station.id}`);
       const previous = members.get(id) ?? [];
       members.set(id, [...previous, { routeId: route.id, stationId: station.id }]);
-      if (!stations.has(id) || route.id === activeId) {
-        stations.set(id, { ...station, id });
-        visible.set(id, stops.get(station.id) ?? 'common');
-      }
+      const existing = stations.get(id);
+      stations.set(id, {
+        ...(!existing || route.id === activeId ? station : existing),
+        id,
+        routeNames: [...(existing?.routeNames ?? []), `${route.operator} ${route.name}`],
+      });
+      if (!existing || route.id === activeId) visible.set(id, stops.get(station.id) ?? 'common');
     }
   }
   const first = routes[0];
@@ -48,7 +55,7 @@ export function combineRoutes(
         id: routes.map((r) => r.id).join('+'),
         name: routes.map((r) => r.name).join('・'),
         stations: [...stations.values()],
-        geometry: routes.flatMap((r) => r.geometry.map((g) => ({ ...g, id: `${r.id}:${g.id}` }))),
+        geometry: combinedGeometry(routes),
       }
     : null;
   return { route, visible, members };
