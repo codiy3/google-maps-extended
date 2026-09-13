@@ -23,7 +23,7 @@ describe('外部地図への接続設定', () => {
     vi.stubEnv('VITE_GOOGLE_MAPS_API_KEY', 'test-placeholder-never-sent');
     vi.stubGlobal(
       'fetch',
-      vi.fn(() => Promise.resolve(Response.json({ schemaVersion: 2, routes: [] }))),
+      vi.fn(() => Promise.resolve(Response.json({ schemaVersion: 3, routes: [] }))),
     );
     render(<App />);
     await screen.findByRole('combobox');
@@ -37,7 +37,7 @@ describe('外部地図への接続設定', () => {
     vi.stubEnv('VITE_GOOGLE_MAPS_MODE', 'google');
     vi.stubGlobal(
       'fetch',
-      vi.fn(() => Promise.resolve(Response.json({ schemaVersion: 2, routes: [] }))),
+      vi.fn(() => Promise.resolve(Response.json({ schemaVersion: 3, routes: [] }))),
     );
     render(<App />);
     await screen.findByRole('combobox');
@@ -50,7 +50,7 @@ describe('路線と表示の同期', () => {
     const route = routeFixture();
     const fetchMock = vi.fn((url: string) =>
       Promise.resolve(
-        Response.json(url.includes('catalog') ? { schemaVersion: 2, routes: [route] } : route),
+        Response.json(url.includes('catalog') ? { schemaVersion: 3, routes: [route] } : route),
       ),
     );
     vi.stubGlobal('fetch', fetchMock);
@@ -62,7 +62,7 @@ describe('路線と表示の同期', () => {
     fireEvent.change(input, { target: { value: '中央' } });
     fireEvent.click(screen.getByRole('option'));
     await screen.findByRole('img', { name: '中央線の線路形状' });
-    expect(fetchMock.mock.calls.filter(([url]) => !url.includes('catalog'))).toHaveLength(2);
+    expect(fetchMock.mock.calls.filter(([url]) => !url.includes('catalog'))).toHaveLength(1);
     expect(
       within(screen.getByRole('list', { name: '駅一覧' })).getAllByRole('button'),
     ).toHaveLength(3);
@@ -76,7 +76,7 @@ describe('路線と表示の同期', () => {
       vi.fn((url: string) => {
         if (url.includes('catalog'))
           return Promise.resolve(
-            Response.json({ schemaVersion: 2, routes: [a, b], notice: 'テスト用' }),
+            Response.json({ schemaVersion: 3, routes: [a, b], notice: 'テスト用' }),
           );
         if (url.includes(a.id))
           return new Promise<Response>((resolve) => {
@@ -95,8 +95,8 @@ describe('路線と表示の同期', () => {
     await act(async () => {
       resolveA?.(Response.json(a));
     });
-    expect(screen.getByRole('img', { name: '第二線の線路形状' })).toBeTruthy();
-    expect(screen.queryByRole('img', { name: '中央線の線路形状' })).toBeNull();
+    expect(screen.getByRole('heading', { name: /^第二線$/ })).toBeTruthy();
+    expect(screen.getByRole('img', { name: '中央線・第二線の線路形状' })).toBeTruthy();
   });
   it('検索文字を変更しても選択路線を維持し、種別と全駅を切り替える', async () => {
     const route: RouteDetail = {
@@ -115,7 +115,7 @@ describe('路線と表示の同期', () => {
       'fetch',
       vi.fn((url: string) =>
         Promise.resolve(
-          Response.json(url.includes('catalog') ? { schemaVersion: 2, routes: [route] } : route),
+          Response.json(url.includes('catalog') ? { schemaVersion: 3, routes: [route] } : route),
         ),
       ),
     );

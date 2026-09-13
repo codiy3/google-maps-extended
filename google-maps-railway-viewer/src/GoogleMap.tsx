@@ -1,6 +1,5 @@
 import { importLibrary, setOptions } from '@googlemaps/js-api-loader';
 import { useEffect, useRef, useState } from 'react';
-import { stopLabels } from './services';
 import type { RouteDetail, StopState } from './types';
 
 let loading: Promise<void> | undefined;
@@ -66,7 +65,12 @@ export function GoogleMap({
   }, [apiKey]);
 
   useEffect(() => {
-    if (!map || !route) return;
+    if (!map) return;
+    if (!route) {
+      map.setCenter({ lat: 36.2, lng: 138.25 });
+      map.setZoom(5);
+      return;
+    }
     const lines = route.geometry.map(
       (segment) =>
         new google.maps.Polyline({
@@ -83,7 +87,11 @@ export function GoogleMap({
       for (const [lng, lat] of segment.coordinates) bounds.extend({ lng, lat });
     for (const station of route.stations)
       bounds.extend({ lng: station.position[0], lat: station.position[1] });
-    if (!bounds.isEmpty()) map.fitBounds(bounds, 50);
+    if (!bounds.isEmpty())
+      map.fitBounds(
+        bounds,
+        window.innerWidth <= 800 ? { top: 180, right: 35, bottom: 40, left: 35 } : 50,
+      );
     return () => {
       for (const line of lines) line.setMap(null);
     };
@@ -105,7 +113,7 @@ export function GoogleMap({
       const marker = new google.maps.marker.AdvancedMarkerElement({
         map,
         position: { lng: station.position[0], lat: station.position[1] },
-        title: `${station.name} · ${stopLabels[state]}`,
+        title: `${station.name} · ${route.name}`,
         collisionBehavior: google.maps.CollisionBehavior.REQUIRED,
       });
       marker.append(pin);
