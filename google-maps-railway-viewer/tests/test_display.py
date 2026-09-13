@@ -79,7 +79,7 @@ class OfficialDisplayTests(unittest.TestCase):
                     self.assertTrue(122 <= lon <= 154 and 20 <= lat <= 46)
 
     def test_station_search_index_matches_membership_without_merging_routes(self):
-        self.assertEqual(self.catalog["schemaVersion"], 2)
+        self.assertEqual(self.catalog["schemaVersion"], 3)
         for route in self.catalog["routes"]:
             names = {s["name"] for s in self.details[route["id"]]["stations"]}
             self.assertEqual(set(route["stationNames"]), names)
@@ -94,6 +94,46 @@ class OfficialDisplayTests(unittest.TestCase):
                 for r in self.catalog["routes"]
             )
         )
+
+    def test_metro_operating_sections_include_shared_railway(self):
+        expected = {
+            "yurakucho": (24, "和光市", "新木場"),
+            "fukutoshin": (16, "和光市", "渋谷"),
+            "chiyoda": (20, "代々木上原", "北綾瀬"),
+        }
+        for slug, (count, first, last) in expected.items():
+            route = self.details[f"tokyo-metro-{slug}"]
+            self.assertEqual(route["stationCount"], count)
+            self.assertEqual(route["stations"][0]["name"], first)
+            self.assertEqual(route["stations"][-1]["name"], last)
+            self.assertEqual(route["stationOrder"], "route")
+            self.assertEqual(len(route["geometry"]), count - 1)
+            self.assertNotIn("号線", route["name"])
+        fukuto = self.details["tokyo-metro-fukutoshin"]
+        self.assertEqual(
+            [s["name"] for s in fukuto["stations"][:6]],
+            ["和光市", "地下鉄成増", "地下鉄赤塚", "平和台", "氷川台", "小竹向原"],
+        )
+
+    def test_through_services_and_transfers_link_to_existing_station_ids(self):
+        for route in self.details.values():
+            for station in route["stations"]:
+                for connection in station["connections"]:
+                    other = self.details[connection["routeId"]]
+                    self.assertNotEqual(other["id"], route["id"])
+                    self.assertIn(connection["stationId"], [s["id"] for s in other["stations"]])
+        chiyoda = self.details["tokyo-metro-chiyoda"]
+        uehara = chiyoda["stations"][0]
+        through = [c for c in uehara["connections"] if c["kind"] == "through"]
+        self.assertEqual(len(through), 1)
+        self.assertEqual(self.details[through[0]["routeId"]]["name"], "小田原線")
+        shibuya = next(
+            s for s in self.details["jr-east-yamanote"]["stations"] if s["name"] == "渋谷"
+        )
+        self.assertTrue(shibuya["connections"])
+        self.assertTrue(all(c["kind"] == "transfer" for c in shibuya["connections"]))
+        ikebukuro = self.details["tokyo-metro-fukutoshin"]["stations"][8]
+        self.assertIn("jr-east-yamanote", [c["routeId"] for c in ikebukuro["connections"]])
 
 
 if __name__ == "__main__":
