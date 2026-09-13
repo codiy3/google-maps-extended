@@ -1,0 +1,11 @@
+[project]
+name = "google-maps-railway-viewer"
+version = "0.1.0"
+description = "全国鉄道路線の駅と線形を整備するデータ処理"
+readme = "README.md"
+requires-python = ">=3.12,<3.13"
+dependencies = []
+
+[tool.uv]
+package = false
+python-preference = "only-managed"
