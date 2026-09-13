@@ -1,0 +1,400 @@
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { fetchCatalog, fetchRoute } from './data';
+import { GoogleMap } from './GoogleMap';
+import { MapPreview } from './MapPreview';
+import { SearchBox } from './SearchBox';
+import { displayedStops, sortServices, stopLabels } from './services';
+import type { Catalog, RouteDetail, RouteSummary, StopState } from './types';
+
+type Load<T> =
+  | { status: 'loading' }
+  | { status: 'ready'; value: T }
+  | { status: 'error'; message: string };
+const apiKey = (import.meta.env.VITE_GOOGLE_MAPS_API_KEY || '').trim();
+
+export default function App() {
+  const [catalog, setCatalog] = useState<Load<Catalog>>({ status: 'loading' });
+  const [catalogAttempt, setCatalogAttempt] = useState(0);
+  const [choice, setChoice] = useState<RouteSummary | null>(null);
+  const [detail, setDetail] = useState<Load<RouteDetail>>({ status: 'loading' });
+  const [detailAttempt, setDetailAttempt] = useState(0);
+  const [selected, setSelected] = useState<string | null>(null);
+  const [serviceIds, setServiceIds] = useState<string[]>([]);
+  const [expanded, setExpanded] = useState(true);
+  const [showSetup, setShowSetup] = useState(false);
+  // biome-ignore lint/correctness/useExhaustiveDependencies: 再試行ボタンの世代番号で取得をやり直す。
+  useEffect(() => {
+    const controller = new AbortController();
+    let current = true;
+    fetchCatalog(controller.signal)
+      .then((value) => {
+        if (current) setCatalog({ status: 'ready', value });
+      })
+      .catch(() => {
+        if (current)
+          setCatalog({
+            status: 'error',
+            message: '路線一覧を読み込めませんでした。データの生成状態と接続を確認してください。',
+          });
+      });
+    return () => {
+      current = false;
+      controller.abort();
+    };
+  }, [catalogAttempt]);
+  // biome-ignore lint/correctness/useExhaustiveDependencies: 路線の取得失敗時にも同じIDで再試行する。
+  useEffect(() => {
+    if (!choice) return;
+    const controller = new AbortController();
+    let current = true;
+    fetchRoute(choice.id, controller.signal)
+      .then((value) => {
+        if (current) setDetail({ status: 'ready', value });
+      })
+      .catch(() => {
+        if (current)
+          setDetail({
+            status: 'error',
+            message: '駅・線路データを読み込めませんでした。再試行してください。',
+          });
+      });
+    return () => {
+      current = false;
+      controller.abort();
+    };
+  }, [choice, detailAttempt]);
+  function choose(route: RouteSummary) {
+    setChoice(route);
+    setDetail({ status: 'loading' });
+    setServiceIds([]);
+    setSelected(null);
+    setExpanded(true);
+  }
+  const route =
+    choice && detail.status === 'ready' && choice.id === detail.value.id ? detail.value : null;
+  const stops = useMemo(
+    () => (route ? displayedStops(route, serviceIds) : new Map<string, StopState>()),
+    [route, serviceIds],
+  );
+  const selectStation = useCallback((id: string) => setSelected(id), []);
+  const activeStation = route?.stations.find((s) => s.id === selected && stops.has(s.id));
+  function toggleService(id: string) {
+    setServiceIds((previous) =>
+      previous.includes(id) ? previous.filter((v) => v !== id) : [...previous, id],
+    );
+    setSelected(null);
+  }
+  return (
+    <main className="app-shell">
+      <header className="app-header">
+        <a href="/" className="brand">
+          <span className="brand-mark" aria-hidden="true">
+            ↗
+          </span>
+          <span>
+            Railway Viewer<small>沿線を見つける</small>
+          </span>
+        </a>
+        <div className="header-actions">
+          <span className="preview-label">開発版</span>
+          <button
+            type="button"
+            className="text-button"
+            onClick={() => setShowSetup(!showSetup)}
+            aria-expanded={showSetup}
+          >
+            地図の設定・データ
+          </button>
+        </div>
+      </header>
+      {showSetup && (
+        <aside className="setup-panel" aria-label="地図の設定とデータについて">
+          <div>
+            <strong>Google マップの設定</strong>
+            <p>
+              アプリの .env.example を .env.local にコピーし、Maps JavaScript API
+              のブラウザ用キーを設定して再起動してください。設定手順はREADMEに記載しています。
+            </p>
+            <p>
+              現在：
+              {apiKey ? 'キー設定あり（認証状態は地図で確認）' : 'キー未設定・線形プレビューで表示'}
+            </p>
+          </div>
+          <div>
+            <strong>収録データについて</strong>
+            <p>
+              国土数値情報の鉄道データを加工して表示しています。運行系統との照合が済んでいない路線、未取得の種別・時刻表があります。現在の運行状況は各社の案内を確認してください。
+            </p>
+            <a
+              href="https://nlftp.mlit.go.jp/ksj/gml/datalist/KsjTmplt-N02-2025.html"
+              target="_blank"
+              rel="noreferrer"
+            >
+              出典・利用条件を確認 ↗
+            </a>
+          </div>
+          <button type="button" className="text-button" onClick={() => setShowSetup(false)}>
+            閉じる
+          </button>
+        </aside>
+      )}
+      <div className="workspace">
+        <aside className="sidebar">
+          <section className="search-section" aria-label="路線検索">
+            <div className="eyebrow">EXPLORE THE RAILWAY</div>
+            <h1>
+              どの路線を
+              <br className="desktop-only" />
+              見てみますか？
+            </h1>
+            {catalog.status === 'ready' ? (
+              <SearchBox routes={catalog.value.routes} onSelect={choose} />
+            ) : catalog.status === 'loading' ? (
+              <p role="status">路線一覧を読み込み中…</p>
+            ) : (
+              <div role="alert">
+                <p>{catalog.message}</p>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setCatalog({ status: 'loading' });
+                    setCatalogAttempt((n) => n + 1);
+                  }}
+                >
+                  一覧を再試行
+                </button>
+              </div>
+            )}
+            {!choice && (
+              <p className="search-hint">
+                山手線、中央線、京都線など。
+                <br />
+                同じ名前の路線も、会社と地域で選べます。
+              </p>
+            )}
+          </section>
+          <section
+            className={`route-panel ${expanded ? 'expanded' : 'collapsed'}`}
+            aria-label="選択路線と駅一覧"
+          >
+            {choice ? (
+              <>
+                <button
+                  type="button"
+                  className="mobile-panel-handle"
+                  onClick={() => setExpanded(!expanded)}
+                  aria-expanded={expanded}
+                >
+                  {choice.name} · {route ? `${stops.size}駅` : '読み込み'}{' '}
+                  <span>{expanded ? '⌄' : '⌃'}</span>
+                </button>
+                <div className="route-panel-content">
+                  <div className="route-heading">
+                    <div>
+                      <div className="eyebrow">SELECTED LINE</div>
+                      <h2>{choice.name}</h2>
+                      <p>
+                        {choice.operator} · {choice.prefectures.join('・') || '都道府県未確認'}
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      className="text-button"
+                      aria-label="路線の選択を解除"
+                      onClick={() => {
+                        setChoice(null);
+                        setSelected(null);
+                        setServiceIds([]);
+                      }}
+                    >
+                      ×
+                    </button>
+                  </div>
+                  {detail.status === 'loading' && (
+                    <p className="panel-message" role="status">
+                      駅と線路を読み込み中…
+                    </p>
+                  )}
+                  {detail.status === 'error' && (
+                    <div className="panel-message" role="alert">
+                      <p>{detail.message}</p>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setDetail({ status: 'loading' });
+                          setDetailAttempt((n) => n + 1);
+                        }}
+                      >
+                        路線を再試行
+                      </button>
+                    </div>
+                  )}
+                  {route && (
+                    <>
+                      <p className="section-description">{route.section}</p>
+                      {route.kind === 'source_railway' && (
+                        <p className="data-note">
+                          基礎データの路線区分です。案内上の運行系統とは異なる場合があります。
+                        </p>
+                      )}
+                      <div className="service-filter">
+                        <div className="filter-title">
+                          <h3>列車の種類</h3>
+                          <span>種別順</span>
+                        </div>
+                        <button
+                          type="button"
+                          className={`filter-chip ${serviceIds.length === 0 ? 'active' : ''}`}
+                          aria-pressed={serviceIds.length === 0}
+                          onClick={() => {
+                            setServiceIds([]);
+                            setSelected(null);
+                          }}
+                        >
+                          全駅
+                        </button>
+                        {sortServices(route.services).map((service) => (
+                          <label
+                            key={service.id}
+                            className={`filter-chip ${serviceIds.includes(service.id) ? 'active' : ''}`}
+                          >
+                            <input
+                              type="checkbox"
+                              checked={serviceIds.includes(service.id)}
+                              onChange={() => toggleService(service.id)}
+                            />
+                            {service.name}
+                            {service.rank === null ? '（順位未確認）' : ''}
+                          </label>
+                        ))}
+                        {route.serviceStatus === 'unavailable' && (
+                          <p className="muted">この路線の種別・停車パターンは未取得です。</p>
+                        )}
+                        <p className="timetable-note">
+                          所要時間順：時刻表未取得のため利用できません。
+                        </p>
+                        {serviceIds.length > 0 && (
+                          <p className="muted">
+                            選択した種類の停車駅をまとめています。一部停車・未確認はピンの形と文字で区別します。
+                          </p>
+                        )}
+                      </div>
+                      <div className="station-list-heading">
+                        <h3>
+                          表示する駅 <span>{stops.size}</span>
+                        </h3>
+                        <span>
+                          {route.stationOrder === 'route' ? '路線順' : '駅名順・停車順未確認'}
+                        </span>
+                      </div>
+                      <ul className="station-list" aria-label="駅一覧">
+                        {route.stations
+                          .filter((station) => stops.has(station.id))
+                          .map((station, index) => (
+                            <li key={station.id}>
+                              <button
+                                type="button"
+                                className={selected === station.id ? 'selected' : ''}
+                                aria-pressed={selected === station.id}
+                                onClick={() => selectStation(station.id)}
+                              >
+                                <span className="station-number">
+                                  {String(index + 1).padStart(2, '0')}
+                                </span>
+                                <span className="station-name">
+                                  {station.name}
+                                  {serviceIds.length > 0 && (
+                                    <small>{stopLabels[stops.get(station.id) ?? 'unknown']}</small>
+                                  )}
+                                </span>
+                                <span aria-hidden="true">↗</span>
+                              </button>
+                            </li>
+                          ))}
+                      </ul>
+                      {stops.size === 0 && (
+                        <p className="panel-message">
+                          選択した種類で停車を確認できる駅がありません。
+                        </p>
+                      )}
+                      <footer className="route-sources">
+                        <span>鉄道データ基準日：{route.dataDate}</span>
+                        {route.sources.map((source) => (
+                          <a key={source.url} href={source.url} target="_blank" rel="noreferrer">
+                            {source.title} ↗
+                          </a>
+                        ))}
+                      </footer>
+                    </>
+                  )}
+                </div>
+              </>
+            ) : (
+              <div className="empty-selection">
+                <span aria-hidden="true">◎</span>
+                <p>
+                  路線を選ぶと、
+                  <br />
+                  駅の一覧がここに表示されます。
+                </p>
+              </div>
+            )}
+          </section>
+          <footer className="sidebar-footer">
+            全国の基礎データを収録 · 運行系統の照合を継続中
+          </footer>
+        </aside>
+        <section className="map-area" aria-label="沿線の地図">
+          {apiKey ? (
+            <GoogleMap
+              apiKey={apiKey}
+              route={route}
+              visible={stops}
+              selected={selected}
+              onSelect={selectStation}
+            />
+          ) : (
+            <MapPreview
+              route={route}
+              visible={stops}
+              selected={selected}
+              onSelect={selectStation}
+            />
+          )}
+          {!apiKey && (
+            <button type="button" className="map-setup-button" onClick={() => setShowSetup(true)}>
+              Google マップを設定 ↗
+            </button>
+          )}
+          {activeStation && (
+            <div className="station-card" role="status">
+              <span className="red-dot" />
+              <div>
+                <strong>{activeStation.name}</strong>
+                <span>
+                  {route?.name} · {route?.operator}
+                </span>
+                <small>
+                  {serviceIds.length > 0
+                    ? stopLabels[stops.get(activeStation.id) ?? 'unknown']
+                    : '路線に含まれる駅'}
+                </small>
+              </div>
+              <button
+                type="button"
+                className="text-button"
+                aria-label="駅の選択を解除"
+                onClick={() => setSelected(null)}
+              >
+                ×
+              </button>
+            </div>
+          )}
+          <div className="map-attribution">
+            国土数値情報（鉄道・行政区域）（国土交通省）を加工して作成
+          </div>
+        </section>
+      </div>
+    </main>
+  );
+}
