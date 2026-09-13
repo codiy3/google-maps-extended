@@ -1,7 +1,16 @@
 import { act, cleanup, fireEvent, render, screen, within } from '@testing-library/react';
+import type { ComponentProps } from 'react';
 import { afterEach, expect, it, vi } from 'vitest';
-import { StationDetails } from './StationDetails';
+import { StationDetails as Details } from './StationDetails';
 import { routeFixture } from './test-fixtures';
+import { useStationTimes } from './useStationTimes';
+
+function StationDetails(
+  props: Omit<ComponentProps<typeof Details>, 'times'> & { serviceIds: string[] },
+) {
+  const times = useStationTimes(props.route.id, props.station.id, props.serviceIds);
+  return <Details {...props} times={times} />;
+}
 
 afterEach(() => {
   cleanup();

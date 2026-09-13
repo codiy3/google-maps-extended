@@ -17,17 +17,22 @@ export function GoogleMap({
   visible,
   selected,
   onSelect,
+  onClear,
+  arrivals,
 }: {
   apiKey: string;
   route: RouteDetail | null;
   visible: Map<string, StopState>;
   selected: string | null;
   onSelect: (id: string) => void;
+  onClear?: () => void;
+  arrivals?: ReadonlyMap<string, string>;
 }) {
   const container = useRef<HTMLDivElement>(null);
   const [map, setMap] = useState<google.maps.Map | null>(null);
   const [error, setError] = useState(false);
   const markers = useRef(new Map<string, google.maps.marker.AdvancedMarkerElement>());
+  const arrivalElements = useRef(new Map<string, HTMLElement>());
   useEffect(() => {
     let disposed = false;
     const timer = window.setTimeout(() => {
@@ -129,13 +134,20 @@ export function GoogleMap({
       content.className = `station-marker ${current.size % 2 ? 'label-left' : ''}`;
       const label = document.createElement('span');
       label.className = 'station-name-label';
+      const title = document.createElement('span');
+      title.className = 'station-label-title';
       for (const color of station.routeColors ?? []) {
         const swatch = document.createElement('i');
         swatch.className = 'route-dot';
         swatch.style.backgroundColor = color;
-        label.append(swatch);
+        title.append(swatch);
       }
-      label.append(document.createTextNode(station.name));
+      title.append(document.createTextNode(station.name));
+      const arrival = document.createElement('small');
+      arrival.className = 'station-arrival-label';
+      arrival.hidden = true;
+      arrivalElements.current.set(station.id, arrival);
+      label.append(title, arrival);
       content.append(pin, label);
       marker.append(content);
       listeners.push(marker.addListener('click', () => onSelect(station.id)));
@@ -146,8 +158,18 @@ export function GoogleMap({
       for (const listener of listeners) listener.remove();
       for (const marker of current.values()) marker.map = null;
       markers.current = new Map();
+      arrivalElements.current.clear();
     };
   }, [map, route, visible, onSelect]);
+
+  // ピンを作り直さずラベルだけ更新し、地図の位置と吹き出しを維持する。
+  // biome-ignore lint/correctness/useExhaustiveDependencies: 地図とピンの再生成後もラベルを反映する。
+  useEffect(() => {
+    for (const [id, element] of arrivalElements.current) {
+      element.textContent = arrivals?.get(id) ?? '';
+      element.hidden = !element.textContent;
+    }
+  }, [arrivals, map, route, visible, onSelect]);
 
   useEffect(() => {
     if (!map || !route || !selected) return;
@@ -155,11 +177,27 @@ export function GoogleMap({
     if (!station || !visible.has(selected)) return;
     map.panTo({ lng: station.position[0], lat: station.position[1] });
     const content = document.createElement('div');
-    content.textContent = `${station.name} · ${station.routeNames?.join('・') ?? route.operator}`;
-    const info = new google.maps.InfoWindow({ content });
+    content.className = 'station-info-body';
+    content.textContent = station.routeNames?.join(' / ') ?? route.operator;
+    const header = document.createElement('h3');
+    header.className = 'station-info-heading';
+    header.textContent = `${station.name}${station.name.endsWith('駅') ? '' : '駅'}`;
+    const note = document.createElement('p');
+    note.textContent = '出発駅 · 各駅の到着時刻を地図に表示';
+    content.append(note);
+    const info = new google.maps.InfoWindow({
+      content,
+      headerContent: header,
+      ariaLabel: header.textContent,
+      maxWidth: 300,
+    });
+    const listener = info.addListener('close', () => onClear?.());
     info.open({ map, anchor: markers.current.get(selected), shouldFocus: false });
-    return () => info.close();
-  }, [map, route, selected, visible]);
+    return () => {
+      listener.remove();
+      info.close();
+    };
+  }, [map, route, selected, visible, onClear]);
   return (
     <>
       <section ref={container} className="google-map" aria-label="Google マップ" />

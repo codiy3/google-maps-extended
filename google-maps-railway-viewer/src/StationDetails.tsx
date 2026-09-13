@@ -1,22 +1,7 @@
-import { useEffect, useRef, useState } from 'react';
-import { fetchDurations } from './data';
-import type { DurationResult, RouteDetail, RouteSummary, Station } from './types';
+import { useEffect, useRef } from 'react';
+import type { RouteDetail, RouteSummary, Station } from './types';
+import { dateLabel, type StationTimes } from './useStationTimes';
 
-function dateLabel(value?: string) {
-  if (!value || Number.isNaN(Date.parse(value))) return '';
-  return new Intl.DateTimeFormat('ja-JP', {
-    timeZone: 'Asia/Tokyo',
-    month: 'numeric',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-    hourCycle: 'h23',
-  }).format(new Date(value));
-}
-function initialTime() {
-  const now = new Date();
-  return new Date(now.getTime() + 9 * 3600000).toISOString().slice(0, 16);
-}
 const labels: Record<string, string> = {
   origin: '出発駅',
   unavailable: '時刻表未取得',
@@ -29,45 +14,20 @@ export function StationDetails({
   station,
   routes,
   onNavigate,
-  serviceIds,
+  times,
 }: {
   route: RouteDetail;
   station: Station;
   routes: RouteSummary[];
   onNavigate: (route: RouteSummary, stationId?: string) => void;
-  serviceIds: string[];
+  times: StationTimes;
 }) {
-  const [start, setStart] = useState(initialTime);
-  const requestKey = JSON.stringify([route.id, station.id, start, serviceIds]);
-  const [response, setResponse] = useState<{ key: string; value: DurationResult } | null>(null);
-  const result = response?.key === requestKey ? response.value : null;
+  const { start, setStart, result, error } = times;
   const section = useRef<HTMLElement>(null);
   // biome-ignore lint/correctness/useExhaustiveDependencies: 駅の選択変更時に詳細へスクロールする。
   useEffect(() => {
     section.current?.scrollIntoView?.({ block: 'start', behavior: 'smooth' });
   }, [station.id]);
-  const [error, setError] = useState('');
-  useEffect(() => {
-    const controller = new AbortController();
-    let current = true;
-    setResponse(null);
-    setError('');
-    if (!start || Number.isNaN(Date.parse(`${start}:00+09:00`))) {
-      setError('出発日時を入力してください。');
-      return;
-    }
-    fetchDurations(route.id, station.id, `${start}:00+09:00`, serviceIds, controller.signal)
-      .then((value) => {
-        if (current) setResponse({ key: requestKey, value });
-      })
-      .catch(() => {
-        if (current) setError('所要時間を読み込めませんでした。');
-      });
-    return () => {
-      current = false;
-      controller.abort();
-    };
-  }, [route.id, station.id, start, serviceIds, requestKey]);
   const connections = (station.connections ?? []).flatMap((connection) => {
     const target = routes.find((r) => r.id === connection.routeId);
     return target ? [{ connection, target }] : [];
@@ -112,6 +72,7 @@ export function StationDetails({
       </label>
       <p className="muted">
         指定時刻から2時間に出発する、選択路線・選択種別の乗換なしの便を比較します。待ち時間は含みません。
+        各駅ごとに最短乗車時間の便を選び、その予定到着時刻を地図にも表示します。
       </p>
       {error ? (
         <p role="alert">{error}</p>

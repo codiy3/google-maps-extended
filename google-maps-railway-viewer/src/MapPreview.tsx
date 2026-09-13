@@ -10,11 +10,13 @@ export function MapPreview({
   visible,
   selected,
   onSelect,
+  arrivals,
 }: {
   route: RouteDetail | null;
   visible: Map<string, StopState>;
   selected: string | null;
   onSelect: (id: string) => void;
+  arrivals?: ReadonlyMap<string, string>;
 }) {
   const drawing = useMemo(() => {
     if (!route) return null;
@@ -100,10 +102,15 @@ export function MapPreview({
                     )}
                   </svg>
                   <span className="station-name-label">
-                    {station.routeColors?.map((color) => (
-                      <i key={color} className="route-dot" style={{ backgroundColor: color }} />
-                    ))}
-                    {station.name}
+                    <span className="station-label-title">
+                      {station.routeColors?.map((color) => (
+                        <i key={color} className="route-dot" style={{ backgroundColor: color }} />
+                      ))}
+                      {station.name}
+                    </span>
+                    {arrivals?.get(station.id) && (
+                      <small className="station-arrival-label">{arrivals.get(station.id)}</small>
+                    )}
                   </span>
                 </button>
               );

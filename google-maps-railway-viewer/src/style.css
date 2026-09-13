@@ -560,7 +560,8 @@ p {
   left: calc(100% + 3px);
   top: 0;
   display: inline-flex;
-  align-items: center;
+  align-items: flex-start;
+  flex-direction: column;
   gap: 3px;
   padding: 3px 5px;
   border: 1px solid #ccd8d0;
@@ -572,6 +573,34 @@ p {
     600 11px / 1.2 system-ui,
     sans-serif;
   white-space: nowrap;
+}
+.station-label-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+.station-arrival-label {
+  font-size: 10px;
+  font-weight: 500;
+  color: #476153;
+}
+.station-info-heading {
+  margin: 10px 0 4px;
+  font:
+    700 20px / 1.4 system-ui,
+    sans-serif;
+  color: #214335;
+}
+.station-info-body {
+  max-width: 260px;
+  font:
+    12px / 1.6 system-ui,
+    sans-serif;
+  color: #476153;
+}
+.station-info-body p {
+  margin: 8px 0 0;
+  font-size: 11px;
 }
 .label-left .station-name-label {
   left: auto;

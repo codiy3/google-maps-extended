@@ -2,11 +2,13 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { fetchCatalog, fetchRoute, restoreRoute } from './data';
 import { GoogleMap } from './GoogleMap';
 import { MapPreview } from './MapPreview';
+import { mapArrivalLabels } from './map-arrivals';
 import { assignRouteColor, combinedGeometry, combineRoutes, type RouteColors } from './map-data';
 import { SearchBox } from './SearchBox';
 import { StationDetails } from './StationDetails';
 import { displayedStops, sortServices, stopLabels } from './services';
 import type { Catalog, RouteDetail, RouteSummary, StopState } from './types';
+import { useStationTimes } from './useStationTimes';
 
 type Load<T> =
   | { status: 'loading' }
@@ -97,7 +99,9 @@ export default function App() {
     [route, serviceIds],
   );
   const selectStation = useCallback((id: string) => setSelected(id), []);
+  const clearStation = useCallback(() => setSelected(null), []);
   const activeStation = route?.stations.find((s) => s.id === selected && stops.has(s.id));
+  const times = useStationTimes(route?.id, activeStation?.id, serviceIds);
   const displayRoutes = useMemo(
     () => choices.flatMap((r) => (loaded[r.id] ? [loaded[r.id]] : [])),
     [choices, loaded],
@@ -114,6 +118,11 @@ export default function App() {
     [...mapData.members].find(([, members]) =>
       members.some((m) => m.routeId === choice?.id && m.stationId === selected),
     )?.[0] ?? null;
+  const arrivals = useMemo(
+    () =>
+      mapArrivalLabels(mapData.members, route?.id, activeStation?.id, times.result, times.error),
+    [mapData.members, route?.id, activeStation?.id, times.result, times.error],
+  );
   const selectMapStation = useCallback(
     (id: string) => {
       const memberships = mapData.members.get(id);
@@ -372,7 +381,7 @@ export default function App() {
                           station={activeStation}
                           routes={catalog.value.routes}
                           onNavigate={choose}
-                          serviceIds={serviceIds}
+                          times={times}
                           key={route.id}
                         />
                       )}
@@ -500,6 +509,8 @@ export default function App() {
               visible={mapData.visible}
               selected={mapSelected}
               onSelect={selectMapStation}
+              onClear={clearStation}
+              arrivals={arrivals}
             />
           ) : (
             <MapPreview
@@ -507,6 +518,7 @@ export default function App() {
               visible={mapData.visible}
               selected={mapSelected}
               onSelect={selectMapStation}
+              arrivals={arrivals}
             />
           )}
           {!useGoogleMap && (
