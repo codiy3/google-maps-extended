@@ -1,15 +1,6 @@
-import { importLibrary, setOptions } from '@googlemaps/js-api-loader';
 import { useEffect, useRef, useState } from 'react';
+import { loadMaps } from './maps-loader';
 import type { RouteDetail, StopState } from './types';
-
-let loading: Promise<void> | undefined;
-function loadMaps(key: string) {
-  if (!loading) {
-    setOptions({ key, v: 'quarterly', language: 'ja', region: 'JP' });
-    loading = Promise.all([importLibrary('maps'), importLibrary('marker')]).then(() => {});
-  }
-  return loading;
-}
 
 export function GoogleMap({
   apiKey,
