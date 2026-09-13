@@ -11,6 +11,7 @@ export async function fetchCatalog(signal: AbortSignal): Promise<Catalog> {
       (r) =>
         typeof r.id !== 'string' ||
         !Array.isArray(r.aliases) ||
+        !Array.isArray(r.operatorAliases) ||
         !Array.isArray(r.prefectures) ||
         !Array.isArray(r.stationNames) ||
         r.stationNames.some((name) => typeof name !== 'string'),

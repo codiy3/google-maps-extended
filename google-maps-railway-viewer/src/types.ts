@@ -17,6 +17,7 @@ export interface RouteSummary {
   name: string;
   operator: string;
   officialOperator: string;
+  operatorAliases: string[];
   prefectures: string[];
   regionStatus: 'complete' | 'partial' | 'unavailable';
   aliases: string[];

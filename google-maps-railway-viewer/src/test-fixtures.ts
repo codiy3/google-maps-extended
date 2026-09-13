@@ -6,6 +6,7 @@ export function routeFixture(id = 'test-line-a', operator = 'テスト鉄道A'):
     name: '中央線',
     operator,
     officialOperator: operator,
+    operatorAliases: [],
     prefectures: ['東京都'],
     regionStatus: 'complete',
     aliases: ['中央本線', 'ちゅうおうせん'],
