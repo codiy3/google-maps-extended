@@ -17,6 +17,7 @@ export interface RouteSummary {
   name: string;
   operator: string;
   officialOperator: string;
+  operatorAliases: string[];
   prefectures: string[];
   regionStatus: 'complete' | 'partial' | 'unavailable';
   aliases: string[];
@@ -24,6 +25,7 @@ export interface RouteSummary {
   section: string;
   stationOrder: 'name' | 'route';
   stationCount: number;
+  stationNames: string[];
   dataDate: string;
   sources: { title: string; url: string }[];
   services: TrainService[];
@@ -34,7 +36,7 @@ export interface RouteDetail extends RouteSummary {
   geometry: { id: string; coordinates: Position[] }[];
 }
 export interface Catalog {
-  schemaVersion: 1;
+  schemaVersion: 2;
   dataDate: string;
   releaseReady: boolean;
   notice: string;

@@ -1,5 +1,5 @@
 import { useId, useRef, useState } from 'react';
-import { searchRoutes } from './search';
+import { searchRouteMatches } from './search';
 import type { RouteSummary } from './types';
 
 export function SearchBox({
@@ -15,7 +15,7 @@ export function SearchBox({
   const [active, setActive] = useState(-1);
   const composing = useRef(false);
   const listId = useId();
-  const results = searchRoutes(routes, committed);
+  const results = searchRouteMatches(routes, committed);
   const visible = open && committed.trim() !== '';
   function choose(route: RouteSummary) {
     setQuery(route.name);
@@ -31,7 +31,7 @@ export function SearchBox({
         if (!event.currentTarget.contains(event.relatedTarget)) setOpen(false);
       }}
     >
-      <label htmlFor={`${listId}-input`}>路線を探す</label>
+      <label htmlFor={`${listId}-input`}>路線・駅・鉄道会社を探す</label>
       <div className="search-input-wrap">
         <span className="search-icon" aria-hidden="true">
           ⌕
@@ -41,7 +41,8 @@ export function SearchBox({
           type="text"
           role="combobox"
           autoComplete="off"
-          placeholder="路線名を入力（例：中央線）"
+          placeholder="例：中央線・新宿駅・JR東日本"
+          aria-label="路線・駅・鉄道会社を探す"
           value={query}
           aria-expanded={visible}
           aria-controls={listId}
@@ -81,7 +82,7 @@ export function SearchBox({
             }
             if (e.key === 'Enter' && visible && active >= 0 && results[active]) {
               e.preventDefault();
-              choose(results[active]);
+              choose(results[active].route);
             }
           }}
         />
@@ -109,7 +110,7 @@ export function SearchBox({
             候補 {results.length}件<span>会社・地域を確認して選択</span>
           </div>
           <div className="candidate-list" id={listId} role="listbox" aria-label="路線候補">
-            {results.map((route, index) => (
+            {results.map(({ route, matchedStations, matchedOperator }, index) => (
               <div
                 key={route.id}
                 id={`${listId}-${index}`}
@@ -128,6 +129,13 @@ export function SearchBox({
                   {route.regionStatus === 'partial' ? '（一部未確認）' : ''}
                 </span>
                 <small>{route.section}</small>
+                {matchedStations.length > 0 && (
+                  <small className="match-reason">
+                    該当駅：{matchedStations.slice(0, 3).join('・')}
+                    {matchedStations.length > 3 ? ` ほか${matchedStations.length - 3}件` : ''}
+                  </small>
+                )}
+                {matchedOperator && <small className="match-reason">鉄道会社名に一致</small>}
               </div>
             ))}
           </div>

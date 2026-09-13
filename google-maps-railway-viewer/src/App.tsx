@@ -173,9 +173,9 @@ export default function App() {
             )}
             {!choice && (
               <p className="search-hint">
-                山手線、中央線、京都線など。
+                山手線、新宿駅、JR東日本など。
                 <br />
-                同じ名前の路線も、会社と地域で選べます。
+                路線・駅・鉄道会社から探せます。
               </p>
             )}
           </section>

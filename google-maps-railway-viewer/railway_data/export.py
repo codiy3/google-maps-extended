@@ -34,6 +34,14 @@ OPERATOR_NAMES = {
     "大阪市高速電気軌道": "Osaka Metro",
     "東京地下鉄": "東京メトロ",
 }
+# 各社の公式サイトで確認した案内名称。根拠はdocs/route-search.mdに記載。
+OPERATOR_ALIASES = {
+    "京浜急行電鉄": ["京急", "京急電鉄"],
+    "名古屋鉄道": ["名鉄"],
+    "近畿日本鉄道": ["近鉄"],
+    "西日本鉄道": ["西鉄"],
+    "大阪市高速電気軌道": ["大阪メトロ"],
+}
 
 
 def representative(points: list[list[float]]) -> tuple[float, float]:
@@ -127,8 +135,12 @@ def build_display_data(
     }
     add_yamanote(details, station_lines)
     add_chuo_services(details, station_lines)
+    for route in details.values():
+        # 実際に表示する所属駅から索引を作り、近接だけで路線を追加しない。
+        route["stationNames"] = sorted({s["name"] for s in route["stations"]})
+        route["operatorAliases"] = OPERATOR_ALIASES.get(route["officialOperator"], [])
     catalog = {
-        "schemaVersion": 1,
+        "schemaVersion": 2,
         "dataDate": DATA_DATE,
         "releaseReady": False,
         "notice": "国土数値情報（鉄道データ）（国土交通省）を加工して作成",

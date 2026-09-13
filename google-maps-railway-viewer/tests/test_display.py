@@ -78,6 +78,23 @@ class OfficialDisplayTests(unittest.TestCase):
                 for lon, lat in segment["coordinates"]:
                     self.assertTrue(122 <= lon <= 154 and 20 <= lat <= 46)
 
+    def test_station_search_index_matches_membership_without_merging_routes(self):
+        self.assertEqual(self.catalog["schemaVersion"], 2)
+        for route in self.catalog["routes"]:
+            names = {s["name"] for s in self.details[route["id"]]["stations"]}
+            self.assertEqual(set(route["stationNames"]), names)
+            self.assertEqual(len(route["stationNames"]), len(names))
+        shinjuku = {r["id"] for r in self.catalog["routes"] if "新宿" in r["stationNames"]}
+        self.assertTrue(
+            {"jr-east-yamanote", "jr-east-chuo-rapid", "jr-east-chuo-sobu-local"} <= shinjuku
+        )
+        self.assertTrue(
+            any(
+                r["id"] in shinjuku and r["officialOperator"] == "京王電鉄"
+                for r in self.catalog["routes"]
+            )
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

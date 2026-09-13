@@ -1,8 +1,8 @@
 import { spawn } from 'node:child_process';
-import { existsSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createServer } from 'vite';
+import { verifySearchCatalog } from './catalog.mjs';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 let server;
@@ -23,8 +23,7 @@ process.once('SIGTERM', () => {
 try {
   if (process.versions.node !== '24.21.0')
     throw new Error('Node.js 24.21.0を使用してください。setup.commandで専用環境を準備できます。');
-  if (!existsSync(resolve(root, 'public/data/catalog.json')))
-    throw new Error('表示データがありません。setup.commandでデータを生成してください。');
+  await verifySearchCatalog(resolve(root, 'public/data/catalog.json'));
   server = await createServer({
     root,
     server: { host: '127.0.0.1', port: 5173, strictPort: true, open: false },
