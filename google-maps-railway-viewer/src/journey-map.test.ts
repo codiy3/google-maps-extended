@@ -1,5 +1,5 @@
 import { expect, it } from 'vitest';
-import { journeyGeometry, journeyStopLabels } from './journey-map';
+import { journeyGeometry, journeyMapCaption, journeyStopLabels } from './journey-map';
 import type { JourneySelection } from './journey-types';
 import { combineRoutes } from './map-data';
 import { routeFixture } from './test-fixtures';
@@ -31,6 +31,11 @@ it('検索区間だけを強調し、全線の座標と所属色を保持する'
   expect(result[1].coordinates).toHaveLength(2);
   expect(route.geometry[0].context).toBeUndefined();
   expect(journeyGeometry(route.geometry, null, {})).toBe(route.geometry);
+  expect(journeyMapCaption(selection)).toContain('太線：検索した経路');
+  selection.result.legs = selection.result.legs?.map((leg) => ({ ...leg, geometry: [] }));
+  expect(journeyMapCaption(selection)).toContain('線形は未取得');
+  selection.result.legs = [];
+  expect(journeyMapCaption(selection)).toContain('移動なし');
 });
 
 it('路線ごとのフィルターを保持し、乗換案内の駅ラベルを共有駅へ割り当てる', () => {

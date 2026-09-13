@@ -33,6 +33,15 @@ def earliest_arrival(
         raise DataError("出発日時には時差、乗換余裕時間には0〜180分の整数が必要です。")
     if len(stops) < 2 or any(s not in network["groups"] for s in stops):
         raise DataError("駅を候補から選択してください。")
+    if len(set(stops)) == 1:
+        return {
+            "status": "available",
+            "kind": "time",
+            "legs": [],
+            "arrival": start.astimezone(JST).isoformat(),
+            "minutes": 0,
+            "message": "すべて同一駅のため鉄道での移動はありません。駅構内の移動時間は含みません。",
+        }
     if not timetables:
         return {
             "status": "unavailable",

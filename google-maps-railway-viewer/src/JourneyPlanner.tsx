@@ -330,6 +330,7 @@ export function JourneyPlanner({
                     {dateLabel(leg.departure)}発 → {dateLabel(leg.arrival)}着
                   </small>
                 )}
+                {!leg.geometry.length && <small>この区間の線路形状は未取得です。</small>}
               </li>
             );
           })}

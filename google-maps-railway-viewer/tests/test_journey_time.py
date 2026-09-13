@@ -61,6 +61,13 @@ class JourneyTimeTests(unittest.TestCase):
         self.assertNotIn("arrival", self.search(tables={}))
         self.assertEqual(self.search(filters={"test": ["express"]})["status"], "unavailable")
 
+    def test_no_travel_needs_no_timetable_but_a_roundtrip_does(self):
+        result = self.search(["a", "a", "a"], tables={})
+        self.assertEqual(result["minutes"], 0)
+        self.assertEqual(result["arrival"], self.start.isoformat())
+        self.assertEqual(result["legs"], [])
+        self.assertEqual(self.search(["a", "b", "a"], tables={})["status"], "unavailable")
+
 
 if __name__ == "__main__":
     unittest.main()

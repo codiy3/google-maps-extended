@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { fetchCatalog, fetchRoute, restoreRoute } from './data';
 import { GoogleMap } from './GoogleMap';
 import { JourneyPlanner } from './JourneyPlanner';
-import { journeyGeometry, journeyStopLabels } from './journey-map';
+import { journeyGeometry, journeyMapCaption, journeyStopLabels } from './journey-map';
 import type { JourneySelection, ServiceFilters } from './journey-types';
 import { MapPreview } from './MapPreview';
 import { mapArrivalLabels } from './map-arrivals';
@@ -619,7 +619,7 @@ export default function App() {
         </aside>
         <section className="map-area" aria-label="沿線の地図">
           {mode === 'journey' && journey && (
-            <div className="journey-map-caption">太線：検索した経路 · 淡い線：路線全体</div>
+            <div className="journey-map-caption">{journeyMapCaption(journey)}</div>
           )}
           {useGoogleMap ? (
             <GoogleMap
