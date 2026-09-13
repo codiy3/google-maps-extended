@@ -89,7 +89,14 @@ export function MapPreview({
                   aria-pressed={selected === station.id}
                   onClick={() => onSelect(station.id)}
                 >
-                  <span>{visible.get(station.id) === 'observed' ? '?' : ''}</span>
+                  <svg viewBox="0 0 24 32" aria-hidden="true">
+                    <path d="M12 32C10 27 1 19 1 12a11 11 0 0 1 22 0c0 7-9 15-11 20Z" />
+                    {visible.get(station.id) === 'observed' && (
+                      <text x="12" y="17" textAnchor="middle">
+                        ?
+                      </text>
+                    )}
+                  </svg>
                 </button>
               );
             })}
