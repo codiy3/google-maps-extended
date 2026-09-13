@@ -1,12 +1,49 @@
 import { act, cleanup, fireEvent, render, screen, within } from '@testing-library/react';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import App from './App';
+import { GoogleMap } from './GoogleMap';
 import { routeFixture } from './test-fixtures';
 import type { RouteDetail } from './types';
 
+vi.mock('./GoogleMap', () => ({
+  GoogleMap: vi.fn(() => <div data-testid="google-map-test" />),
+}));
+beforeEach(() => {
+  vi.stubEnv('VITE_GOOGLE_MAPS_MODE', '');
+  vi.stubEnv('VITE_GOOGLE_MAPS_API_KEY', '');
+});
 afterEach(() => {
   cleanup();
   vi.unstubAllGlobals();
+  vi.unstubAllEnvs();
+  vi.clearAllMocks();
+});
+describe('外部地図への接続設定', () => {
+  it('キーを保存しても接続設定がなければプレビューを表示する', async () => {
+    vi.stubEnv('VITE_GOOGLE_MAPS_API_KEY', 'test-placeholder-never-sent');
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(() => Promise.resolve(Response.json({ schemaVersion: 1, routes: [] }))),
+    );
+    render(<App />);
+    await screen.findByRole('combobox');
+    expect(GoogleMap).not.toHaveBeenCalled();
+    expect(screen.getByText('線形プレビュー')).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: '地図の設定・データ' }));
+    expect(screen.getByText(/キー保存済み・Google マップ接続は無効/)).toBeTruthy();
+  });
+  it('キーと明示的な接続設定がそろった場合に外部地図を表示する', async () => {
+    vi.stubEnv('VITE_GOOGLE_MAPS_API_KEY', 'test-placeholder-never-sent');
+    vi.stubEnv('VITE_GOOGLE_MAPS_MODE', 'google');
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(() => Promise.resolve(Response.json({ schemaVersion: 1, routes: [] }))),
+    );
+    render(<App />);
+    await screen.findByRole('combobox');
+    expect(screen.getByTestId('google-map-test')).toBeTruthy();
+    expect(screen.queryByText('線形プレビュー')).toBeNull();
+  });
 });
 describe('路線と表示の同期', () => {
   it('同じ路線を選び直しても駅と線路を再表示する', async () => {

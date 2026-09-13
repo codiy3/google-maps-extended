@@ -9,7 +9,7 @@
 - 入力中の候補表示。会社・都道府県・対象区間で同名路線を区別します。
 - 山手線は環状運転の30駅。中央線（快速）は東京〜高尾の24駅、中央・総武線各駅停車は三鷹〜千葉の39駅を対象とします。直通区間を含めない旨を候補に表示します。
 - 路線ごとの駅一覧、赤ピン、元データの線形に沿った緑線。駅とピンの選択を連動させます。
-- Google Maps APIキーが未設定の場合は「背景地図なし」の線形プレビューで操作できます。
+- 初期設定は「背景地図なし」の線形プレビューです。キーを保存しただけではGoogle Mapsへ接続しません。
 - PCでは左側に一覧、スマートフォン幅では下側に開閉パネルを表示します。
 
 全国の運行系統の照合、列車種別・停車パターン・時刻表の取得は未完了です。種別の複数選択と停車の集約処理は実装し、テスト用データで検証していますが、実在路線には未取得の種別を作りません。所要時間の照会・並べ替えは未実装です。この状態を全国対応の正式リリースとは扱いません。
@@ -45,13 +45,14 @@ npm run dev
 
 一般的には本番利用に標準APIキーと課金設定を使いますが、試作にはGoogleが提供する **Maps Demo Key** も利用できます。2026-09-13に確認した公式案内では、課金情報を入力せず、地図・マーカー・ポリラインを試せます。試作限定で、利用上限があります。[Maps Demo Keyの案内](https://developers.google.com/maps/documentation/javascript/demo-key)
 
-1. [Googleの設定案内](https://developers.google.com/maps/documentation/javascript/get-api-key)から、試作用Demo Keyまたは標準APIキーを用意します。Googleアカウントへのログインと規約への同意は利用者自身で行ってください。
+1. 無料で試す場合は[Maps Demo Keyの案内](https://developers.google.com/maps/documentation/javascript/demo-key)の **Get a Demo Key** から取得します。通常のAPIキー作成やGoogle Cloudの無料トライアル登録とは区別してください。Googleアカウントへのログインと規約への同意は利用者自身で行います。課金アカウントへの更新は不要です。
 2. `.env.local` の `VITE_GOOGLE_MAPS_API_KEY=` の右側にキーを保存します。チャットやGitHubには貼り付けません。
-3. 標準キーでは、使用APIをMaps JavaScript API、HTTPリファラーを `http://127.0.0.1:5173/*` に制限します。
+3. Google Cloudのキー設定で制限を設定できる場合は、使用APIをMaps JavaScript API、ウェブサイトのHTTPリファラーを `http://127.0.0.1:5173/*` と `http://localhost:5173/*` に制限します。IPアドレス制限ではありません。
 4. `VITE_GOOGLE_MAPS_MAP_ID=DEMO_MAP_ID` は開発用Map IDです。これはAPIキーの代わりにはなりません。公開時には自身のMap IDへ切り替えます。
-5. アプリを停止して再起動します。読み込み・認証に失敗した場合は、画面のエラー案内に従って設定を確認します。
+5. Demo Keyであることを確認してから `.env.local` の `VITE_GOOGLE_MAPS_MODE=preview` を `VITE_GOOGLE_MAPS_MODE=google` に変更します。設定がない場合・値が異なる場合もプレビューになります。アプリがキーの料金体系を自動判別する機能ではありません。
+6. アプリを停止して再起動します。読み込み・認証に失敗した場合は、キーの種類、利用上限、APIの有効化、リファラー制限を確認します。Demo Keyの日次上限に達した場合は翌日まで待ちます。
 
-ブラウザ用キーは利用者から閲覧可能です。`.env.local`だけで秘密になるとは扱わず、Google側の制限を設定します。標準キーの料金は鉄道データの月額0円条件とは別です。[公式の料金・利用量の説明](https://developers.google.com/maps/documentation/javascript/usage-and-billing)
+ブラウザ用キーは利用者から閲覧可能です。`.env.local`だけで秘密になるとは扱わず、Google側の制限を設定します。キー制限は料金の上限設定ではありません。標準キーの無料利用は保証せず、料金体系が不明な間は `preview` を使います。[公式のキー制限](https://developers.google.com/maps/api-security-best-practices)、[公式の料金・利用量の説明](https://developers.google.com/maps/documentation/javascript/usage-and-billing)
 
 ## データの更新と出典
 

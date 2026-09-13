@@ -143,7 +143,8 @@ export function GoogleMap({
         <div className="map-message" role="alert">
           <strong>Google マップを読み込めませんでした</strong>
           <p>
-            接続、APIキー、課金設定、APIの有効化とリファラー制限を確認して再読み込みしてください。
+            接続、キーの種類・利用上限、APIの有効化とリファラー制限を確認してください。Demo
+            Keyの日次上限に達した場合は翌日まで待ちます。設定手順はREADMEに記載しています。
           </p>
           <button type="button" onClick={() => window.location.reload()}>
             再読み込み

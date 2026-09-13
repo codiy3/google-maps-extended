@@ -10,9 +10,10 @@ type Load<T> =
   | { status: 'loading' }
   | { status: 'ready'; value: T }
   | { status: 'error'; message: string };
-const apiKey = (import.meta.env.VITE_GOOGLE_MAPS_API_KEY || '').trim();
 
 export default function App() {
+  const apiKey = (import.meta.env.VITE_GOOGLE_MAPS_API_KEY || '').trim();
+  const useGoogleMap = import.meta.env.VITE_GOOGLE_MAPS_MODE === 'google' && Boolean(apiKey);
   const [catalog, setCatalog] = useState<Load<Catalog>>({ status: 'loading' });
   const [catalogAttempt, setCatalogAttempt] = useState(0);
   const [choice, setChoice] = useState<RouteSummary | null>(null);
@@ -113,12 +114,16 @@ export default function App() {
           <div>
             <strong>Google マップの設定</strong>
             <p>
-              アプリの .env.example を .env.local にコピーし、Maps JavaScript API
-              のブラウザ用キーを設定して再起動してください。設定手順はREADMEに記載しています。
+              初期設定は線形プレビューです。無料のMaps Demo Keyを用意した後、READMEの手順でGoogle
+              マップへの接続を有効にしてください。
             </p>
             <p>
               現在：
-              {apiKey ? 'キー設定あり（認証状態は地図で確認）' : 'キー未設定・線形プレビューで表示'}
+              {useGoogleMap
+                ? 'Google マップ接続あり（認証状態は地図で確認）'
+                : apiKey
+                  ? 'キー保存済み・Google マップ接続は無効'
+                  : 'キー未設定・線形プレビューで表示'}
             </p>
           </div>
           <div>
@@ -346,7 +351,7 @@ export default function App() {
           </footer>
         </aside>
         <section className="map-area" aria-label="沿線の地図">
-          {apiKey ? (
+          {useGoogleMap ? (
             <GoogleMap
               apiKey={apiKey}
               route={route}
@@ -362,7 +367,7 @@ export default function App() {
               onSelect={selectStation}
             />
           )}
-          {!apiKey && (
+          {!useGoogleMap && (
             <button type="button" className="map-setup-button" onClick={() => setShowSetup(true)}>
               Google マップを設定 ↗
             </button>
