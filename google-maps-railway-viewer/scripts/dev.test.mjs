@@ -51,9 +51,17 @@ test('ローカル固定ポートで起動しSIGINT後に解放する', { timeou
         reject(new Error(`起動前に終了: ${code} ${process.output()}`));
       });
     });
-    const response = await fetch('http://127.0.0.1:5173/data/catalog.json');
+    const response = await fetch('http://127.0.0.1:5173/api/catalog');
     assert.equal(response.status, 200);
-    assert.ok((await response.json()).routes.length > 0);
+    const catalog = await response.json();
+    assert.equal(catalog.schemaVersion, 3);
+    assert.ok(catalog.routes.length > 0);
+    const route = await fetch(`http://127.0.0.1:5173/api/routes/${catalog.routes[0].id}`);
+    assert.equal((await route.json()).storage.saved, true);
+    const blocked = await fetch('http://127.0.0.1:5173/api/catalog', {
+      headers: { Origin: 'https://other.example' },
+    });
+    assert.equal(blocked.status, 403);
     process.child.kill('SIGINT');
     assert.equal((await process.exit)[0], 0);
     const released = await availablePort();

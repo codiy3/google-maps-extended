@@ -7,7 +7,11 @@ import { verifySearchCatalog } from './catalog.mjs';
 
 for (const catalog of [
   { schemaVersion: 1, routes: [{ id: 'old' }] },
-  { schemaVersion: 2, routes: [{ id: 'missing-fields' }] },
+  {
+    schemaVersion: 2,
+    routes: [{ id: 'old-station-index', stationNames: [], operatorAliases: [] }],
+  },
+  { schemaVersion: 3, routes: [{ id: 'missing-fields' }] },
 ]) {
   test(`旧形式・不完全な索引を保護して再生成を案内する: ${catalog.routes[0].id}`, async (t) => {
     const dir = await mkdtemp(join(tmpdir(), 'railway-catalog-test-'));
