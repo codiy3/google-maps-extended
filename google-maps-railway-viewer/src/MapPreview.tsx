@@ -49,6 +49,8 @@ export function MapPreview({
       point,
       paths: route.geometry.map((g) => ({
         id: g.id,
+        color: g.color ?? '#218556',
+        strokeWeight: g.strokeWeight ?? 4,
         points: g.coordinates.map((p) => point(p).join(',')).join(' '),
       })),
     };
@@ -67,8 +69,8 @@ export function MapPreview({
                 key={path.id}
                 points={path.points}
                 fill="none"
-                stroke="#218556"
-                strokeWidth="4"
+                stroke={path.color}
+                strokeWidth={path.strokeWeight}
                 strokeLinecap="round"
                 strokeLinejoin="round"
               />
@@ -97,7 +99,12 @@ export function MapPreview({
                       </text>
                     )}
                   </svg>
-                  <span className="station-name-label">{station.name}</span>
+                  <span className="station-name-label">
+                    {station.routeColors?.map((color) => (
+                      <i key={color} className="route-dot" style={{ backgroundColor: color }} />
+                    ))}
+                    {station.name}
+                  </span>
                 </button>
               );
             })}

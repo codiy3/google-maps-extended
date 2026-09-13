@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { fetchCatalog, fetchRoute, restoreRoute } from './data';
 import { GoogleMap } from './GoogleMap';
 import { MapPreview } from './MapPreview';
-import { combinedGeometry, combineRoutes } from './map-data';
+import { assignRouteColor, combinedGeometry, combineRoutes, type RouteColors } from './map-data';
 import { SearchBox } from './SearchBox';
 import { StationDetails } from './StationDetails';
 import { displayedStops, sortServices, stopLabels } from './services';
@@ -20,6 +20,7 @@ export default function App() {
   const [catalogAttempt, setCatalogAttempt] = useState(0);
   const [choice, setChoice] = useState<RouteSummary | null>(null);
   const [choices, setChoices] = useState<RouteSummary[]>([]);
+  const [routeColors, setRouteColors] = useState<RouteColors>({});
   const [loaded, setLoaded] = useState<Record<string, RouteDetail>>({});
   const cache = useRef(new Map<string, RouteDetail>());
   const [detail, setDetail] = useState<Load<RouteDetail>>({ status: 'loading' });
@@ -78,6 +79,7 @@ export default function App() {
     };
   }, [choice, choices, detailAttempt]);
   function choose(route: RouteSummary, stationId?: string) {
+    setRouteColors((previous) => assignRouteColor(previous, route.id));
     setChoices((previous) =>
       previous.some((r) => r.id === route.id) ? previous : [...previous, route],
     );
@@ -100,12 +102,14 @@ export default function App() {
     () => choices.flatMap((r) => (loaded[r.id] ? [loaded[r.id]] : [])),
     [choices, loaded],
   );
-  const geometry = useMemo(() => combinedGeometry(displayRoutes), [displayRoutes]);
-  const mapData = useMemo(() => {
-    const combined = combineRoutes(displayRoutes, choice?.id, serviceIds);
-    if (combined.route) combined.route.geometry = geometry;
-    return combined;
-  }, [displayRoutes, choice?.id, serviceIds, geometry]);
+  const geometry = useMemo(
+    () => combinedGeometry(displayRoutes, routeColors),
+    [displayRoutes, routeColors],
+  );
+  const mapData = useMemo(
+    () => combineRoutes(displayRoutes, choice?.id, serviceIds, routeColors, geometry),
+    [displayRoutes, choice?.id, serviceIds, geometry, routeColors],
+  );
   const mapSelected =
     [...mapData.members].find(([, members]) =>
       members.some((m) => m.routeId === choice?.id && m.stationId === selected),
@@ -269,6 +273,11 @@ export default function App() {
                       aria-pressed={choice?.id === line.id}
                       onClick={() => choose(line)}
                     >
+                      <span
+                        className="route-swatch"
+                        aria-hidden="true"
+                        style={{ backgroundColor: routeColors[line.id] }}
+                      />
                       {line.operator} {line.name}
                     </button>
                     <button

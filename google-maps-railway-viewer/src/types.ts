@@ -7,6 +7,7 @@ export interface Station {
   sourceCodes: string[];
   groupIds?: string[];
   routeNames?: string[];
+  routeColors?: string[];
   connections?: Connection[];
 }
 export interface TrainService {
@@ -38,7 +39,13 @@ export interface RouteDetail extends RouteSummary {
   stations: Station[];
   throughServices?: (Connection & { atStationId: string; atStationName: string })[];
   storage?: { provider: string; saved: boolean };
-  geometry: { id: string; coordinates: Position[] }[];
+  geometry: {
+    id: string;
+    coordinates: Position[];
+    color?: string;
+    strokeWeight?: number;
+    zIndex?: number;
+  }[];
 }
 export interface Catalog {
   schemaVersion: 3;

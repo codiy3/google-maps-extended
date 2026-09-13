@@ -77,9 +77,10 @@ export function GoogleMap({
         new google.maps.Polyline({
           map,
           path: segment.coordinates.map(([lng, lat]) => ({ lng, lat })),
-          strokeColor: '#18834b',
+          strokeColor: segment.color ?? '#18834b',
           strokeOpacity: 0.95,
-          strokeWeight: 5,
+          strokeWeight: segment.strokeWeight ?? 5,
+          zIndex: segment.zIndex,
           clickable: false,
         }),
     );
@@ -128,7 +129,13 @@ export function GoogleMap({
       content.className = `station-marker ${current.size % 2 ? 'label-left' : ''}`;
       const label = document.createElement('span');
       label.className = 'station-name-label';
-      label.textContent = station.name;
+      for (const color of station.routeColors ?? []) {
+        const swatch = document.createElement('i');
+        swatch.className = 'route-dot';
+        swatch.style.backgroundColor = color;
+        label.append(swatch);
+      }
+      label.append(document.createTextNode(station.name));
       content.append(pin, label);
       marker.append(content);
       listeners.push(marker.addListener('click', () => onSelect(station.id)));

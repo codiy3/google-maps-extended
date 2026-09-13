@@ -6,8 +6,44 @@ export interface Membership {
   stationId: string;
 }
 
-export function combinedGeometry(routes: RouteDetail[]) {
-  return routes.flatMap((r) => r.geometry.map((g) => ({ ...g, id: `${r.id}:${g.id}` })));
+export type RouteColors = Readonly<Record<string, string>>;
+const palette = [
+  '#18834b',
+  '#2563eb',
+  '#9333ea',
+  '#c45b13',
+  '#00818a',
+  '#bd2456',
+  '#675432',
+  '#525f75',
+];
+export function assignRouteColor(colors: RouteColors, id: string): RouteColors {
+  if (colors[id]) return colors;
+  const index = Object.keys(colors).length;
+  const color = palette[index] ?? `hsl(${((index * 137.508) % 360).toFixed(2)} 65% 38%)`;
+  return { ...colors, [id]: color };
+}
+
+export function combinedGeometry(routes: RouteDetail[], colors: RouteColors = {}) {
+  const geometry: RouteDetail['geometry'] = routes.flatMap((r) =>
+    r.geometry.map((g) => ({ ...g, id: `${r.id}:${g.id}`, color: colors[r.id] ?? palette[0] })),
+  );
+  const overlaps = new Map<string, RouteDetail['geometry']>();
+  for (const segment of geometry) {
+    const forward = JSON.stringify(segment.coordinates);
+    const reverse = JSON.stringify([...segment.coordinates].reverse());
+    const key = forward < reverse ? forward : reverse;
+    const group = overlaps.get(key) ?? [];
+    group.push(segment);
+    overlaps.set(key, group);
+  }
+  for (const group of overlaps.values())
+    for (const [index, segment] of group.entries()) {
+      // 同じ線形は太い下地から重ね、各路線の色を残す。座標はずらさない。
+      segment.strokeWeight = 5 + (group.length - index - 1) * 4;
+      segment.zIndex = index + 1;
+    }
+  return geometry;
 }
 
 /** 同一駅グループのピンは共有し、クリック元から所属路線へ戻れるようにする。 */
@@ -15,6 +51,8 @@ export function combineRoutes(
   routes: RouteDetail[],
   activeId: string | undefined,
   serviceIds: string[],
+  colors: RouteColors = {},
+  geometry = combinedGeometry(routes, colors),
 ) {
   const groups = new Map<string, string>();
   function root(id: string): string {
@@ -44,6 +82,7 @@ export function combineRoutes(
         ...(!existing || route.id === activeId ? station : existing),
         id,
         routeNames: [...(existing?.routeNames ?? []), `${route.operator} ${route.name}`],
+        routeColors: [...(existing?.routeColors ?? []), colors[route.id] ?? palette[0]],
       });
       if (!existing || route.id === activeId) visible.set(id, stops.get(station.id) ?? 'common');
     }
@@ -55,7 +94,7 @@ export function combineRoutes(
         id: routes.map((r) => r.id).join('+'),
         name: routes.map((r) => r.name).join('・'),
         stations: [...stations.values()],
-        geometry: combinedGeometry(routes),
+        geometry,
       }
     : null;
   return { route, visible, members };

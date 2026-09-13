@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { combineRoutes } from './map-data';
+import { assignRouteColor, combinedGeometry, combineRoutes } from './map-data';
 import { routeFixture } from './test-fixtures';
 
 describe('複数路線のピンと選択先', () => {
@@ -49,4 +49,21 @@ it('ピンの路線名は所属する路線だけで構成する', () => {
     '会社B 第二線',
   ]);
   expect(route?.stations.find((s) => s.id === 'a:b')?.routeNames).toEqual(['会社A 中央線']);
+});
+
+it('逆向きの共用線形にも両路線の色を残し、原典を変更しない', () => {
+  const a = routeFixture('a');
+  const b = routeFixture('b');
+  b.geometry[0].coordinates = [...a.geometry[0].coordinates].reverse();
+  a.stations[0].groupIds = ['shared'];
+  b.stations[0].groupIds = ['shared'];
+  const colors = assignRouteColor(assignRouteColor({}, 'a'), 'b');
+  const geometry = combinedGeometry([a, b], colors);
+  expect(colors.a).not.toBe(colors.b);
+  expect(geometry.map((g) => g.color)).toEqual([colors.a, colors.b]);
+  expect(geometry[0].strokeWeight).toBeGreaterThan(geometry[1].strokeWeight ?? 0);
+  expect(geometry[0].zIndex).toBeLessThan(geometry[1].zIndex ?? 0);
+  expect(a.geometry[0].color).toBeUndefined();
+  const { route } = combineRoutes([a, b], 'b', [], colors);
+  expect(route?.stations.find((s) => s.id === 'shared')?.routeColors).toEqual([colors.a, colors.b]);
 });

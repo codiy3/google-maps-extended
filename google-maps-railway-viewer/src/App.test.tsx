@@ -12,6 +12,46 @@ beforeEach(() => {
   vi.stubEnv('VITE_GOOGLE_MAPS_MODE', '');
   vi.stubEnv('VITE_GOOGLE_MAPS_API_KEY', '');
 });
+
+it('複数路線を凡例と同じ色で描き、先の路線を解除しても残る色を変えない', async () => {
+  const a = routeFixture('a', '会社A');
+  const b = { ...routeFixture('b', '会社B'), name: '第二線', aliases: [] };
+  vi.stubGlobal(
+    'fetch',
+    vi.fn((url: string) =>
+      Promise.resolve(
+        Response.json(
+          url.includes('catalog')
+            ? { schemaVersion: 3, routes: [a, b] }
+            : url.endsWith('/a')
+              ? a
+              : b,
+        ),
+      ),
+    ),
+  );
+  render(<App />);
+  const input = await screen.findByRole('combobox');
+  fireEvent.change(input, { target: { value: '中央線' } });
+  fireEvent.click(screen.getByRole('option'));
+  await screen.findByRole('img', { name: '中央線の線路形状' });
+  fireEvent.change(input, { target: { value: '第二線' } });
+  fireEvent.click(screen.getByRole('option'));
+  const both = await screen.findByRole('img', { name: '中央線・第二線の線路形状' });
+  const colors = [...both.querySelectorAll('polyline')].map((p) => p.getAttribute('stroke'));
+  expect(colors[0]).not.toBe(colors[1]);
+  const legend = screen.getByRole('region', { name: '表示中の路線' });
+  const swatch = within(legend).getByRole('button', { name: '会社B 第二線' }).querySelector('span');
+  const previousStyle = swatch?.getAttribute('style');
+  const expectedSwatch = document.createElement('span');
+  expectedSwatch.style.backgroundColor = colors[1] ?? '';
+  expect(previousStyle).toBe(expectedSwatch.getAttribute('style'));
+  fireEvent.click(screen.getByRole('button', { name: '会社A 中央線を地図から外す' }));
+  const remaining = await screen.findByRole('img', { name: '第二線の線路形状' });
+  expect(remaining.querySelector('polyline')?.getAttribute('stroke')).toBe(colors[1]);
+  expect(swatch?.getAttribute('style')).toBe(previousStyle);
+  expect(document.querySelectorAll('.station-name-label')).toHaveLength(b.stations.length);
+});
 afterEach(() => {
   cleanup();
   vi.unstubAllGlobals();
