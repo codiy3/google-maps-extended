@@ -170,6 +170,18 @@ describe('路線と表示の同期', () => {
     fireEvent.click(screen.getByRole('checkbox', { name: 'テスト快速' }));
     expect(within(list).getAllByRole('button')).toHaveLength(2);
     expect(within(list).getByText('一部停車')).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: /^乗換案内$/ }));
+    expect((screen.getByRole('checkbox', { name: 'テスト快速' }) as HTMLInputElement).checked).toBe(
+      true,
+    );
+    expect(within(list).getAllByRole('button')).toHaveLength(2);
+    fireEvent.click(within(list).getAllByRole('button')[0]);
+    expect(screen.getByRole('heading', { name: '乗り換え・直通できる路線' })).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: /^路線検索$/ }));
+    expect(screen.getByRole('heading', { name: '乗り換え・直通できる路線' })).toBeTruthy();
+    expect((screen.getByRole('checkbox', { name: 'テスト快速' }) as HTMLInputElement).checked).toBe(
+      true,
+    );
     fireEvent.click(screen.getByRole('button', { name: /^全駅$/ }));
     expect(within(list).getAllByRole('button')).toHaveLength(3);
   });

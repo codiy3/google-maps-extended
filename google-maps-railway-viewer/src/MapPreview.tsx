@@ -20,10 +20,15 @@ export function MapPreview({
 }) {
   const drawing = useMemo(() => {
     if (!route) return null;
-    const positions = [
-      ...route.stations.map((s) => s.position),
-      ...route.geometry.flatMap((g) => g.coordinates),
-    ].map(project);
+    const focus = route.geometry.filter((g) => !g.context);
+    const positions = (
+      route.geometry.some((g) => g.context) && focus.length
+        ? focus.flatMap((g) => g.coordinates)
+        : [
+            ...route.stations.map((s) => s.position),
+            ...route.geometry.flatMap((g) => g.coordinates),
+          ]
+    ).map(project);
     let xMin = Infinity;
     let yMin = Infinity;
     let xMax = -Infinity;
@@ -53,6 +58,7 @@ export function MapPreview({
         id: g.id,
         color: g.color ?? '#218556',
         strokeWeight: g.strokeWeight ?? 4,
+        opacity: g.opacity ?? 1,
         points: g.coordinates.map((p) => point(p).join(',')).join(' '),
       })),
     };
@@ -73,6 +79,7 @@ export function MapPreview({
                 fill="none"
                 stroke={path.color}
                 strokeWidth={path.strokeWeight}
+                strokeOpacity={path.opacity}
                 strokeLinecap="round"
                 strokeLinejoin="round"
               />

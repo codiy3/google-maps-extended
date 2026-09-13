@@ -83,14 +83,15 @@ export function GoogleMap({
           map,
           path: segment.coordinates.map(([lng, lat]) => ({ lng, lat })),
           strokeColor: segment.color ?? '#18834b',
-          strokeOpacity: 0.95,
+          strokeOpacity: segment.opacity ?? 0.95,
           strokeWeight: segment.strokeWeight ?? 5,
           zIndex: segment.zIndex,
           clickable: false,
         }),
     );
     const bounds = new google.maps.LatLngBounds();
-    for (const segment of geometry)
+    const focus = geometry.filter((g) => !g.context);
+    for (const segment of focus.length ? focus : geometry)
       for (const [lng, lat] of segment.coordinates) bounds.extend({ lng, lat });
     const fitRoute = () => {
       const element = container.current;
