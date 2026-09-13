@@ -41,6 +41,11 @@ export function JourneyPlanner({
   const [error, setError] = useState('');
   const [editing, setEditing] = useState(true);
   const controller = useRef<AbortController | null>(null);
+  const section = useRef<HTMLElement>(null);
+  useEffect(() => {
+    if (response)
+      section.current?.closest('.route-panel')?.scrollTo?.({ top: 0, behavior: 'smooth' });
+  }, [response]);
   const request = {
     stops: points.map((p) => p.station?.id ?? null),
     start: `${start}:00+09:00`,
@@ -139,7 +144,7 @@ export function JourneyPlanner({
     });
   }
   return (
-    <section className="journey-planner" hidden={!enabled} aria-label="乗換案内">
+    <section ref={section} className="journey-planner" hidden={!enabled} aria-label="乗換案内">
       <div className="journey-title">
         <h2>乗換案内</h2>
         <button type="button" onClick={() => setEditing(!editing)} aria-expanded={editing}>

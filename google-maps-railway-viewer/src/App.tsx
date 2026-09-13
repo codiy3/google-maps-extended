@@ -45,6 +45,25 @@ export default function App() {
   }
   const [expanded, setExpanded] = useState(true);
   const [showSetup, setShowSetup] = useState(false);
+  const panel = useRef<HTMLElement>(null);
+  function scrollPanel(selector?: string) {
+    const container = panel.current;
+    if (!container) return;
+    const target = selector ? container.querySelector<HTMLElement>(selector) : null;
+    const navigationHeight = [
+      ...container.querySelectorAll('.mobile-panel-handle, .panel-section-nav'),
+    ].reduce((height, el) => height + el.getBoundingClientRect().height, 0);
+    container.scrollTo?.({
+      top: target
+        ? target.getBoundingClientRect().top -
+          container.getBoundingClientRect().top +
+          container.scrollTop -
+          navigationHeight -
+          10
+        : 0,
+      behavior: 'smooth',
+    });
+  }
   // biome-ignore lint/correctness/useExhaustiveDependencies: 再試行ボタンの世代番号で取得をやり直す。
   useEffect(() => {
     const controller = new AbortController();
@@ -367,6 +386,7 @@ export default function App() {
             )}
           </section>
           <section
+            ref={panel}
             className={`route-panel ${expanded ? 'expanded' : 'collapsed'}`}
             aria-label="選択路線と駅一覧"
           >
@@ -382,6 +402,27 @@ export default function App() {
                   : `${choice?.name} · ${route ? `${stops.size}駅` : '読み込み'}`}
                 <span>{expanded ? '⌄' : '⌃'}</span>
               </button>
+            )}
+            {mode === 'journey' && (
+              <nav className="panel-section-nav" aria-label="パネル内の移動">
+                <button type="button" onClick={() => scrollPanel()}>
+                  経路・条件
+                </button>
+                <button
+                  type="button"
+                  disabled={!route}
+                  onClick={() => scrollPanel('.service-filter')}
+                >
+                  列車種別
+                </button>
+                <button
+                  type="button"
+                  disabled={!route}
+                  onClick={() => scrollPanel('.station-list-heading')}
+                >
+                  駅一覧
+                </button>
+              </nav>
             )}
             {catalog.status === 'ready' && (
               <JourneyPlanner

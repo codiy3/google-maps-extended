@@ -803,6 +803,23 @@ p {
   padding: 22px 26px;
   border-bottom: 1px solid #dde4d9;
 }
+.panel-section-nav {
+  position: sticky;
+  top: 0;
+  z-index: 4;
+  display: flex;
+  gap: 6px;
+  padding: 8px 23px;
+  background: #fff;
+  border-bottom: 1px solid #e1e8df;
+}
+.panel-section-nav button {
+  padding: 6px 10px;
+  font-size: 11px;
+}
+:where([data-mode="journey"]) .station-details {
+  scroll-margin-top: 50px;
+}
 .journey-title {
   display: flex;
   align-items: center;
@@ -1110,6 +1127,12 @@ p {
   }
   .journey-planner {
     padding: 18px 23px;
+  }
+  .panel-section-nav {
+    top: 47px;
+  }
+  :where([data-mode="journey"]) .station-details {
+    scroll-margin-top: 95px;
   }
   .workspace:has(.route-panel.collapsed .route-heading) .map-area {
     height: calc(100% - 49px);
