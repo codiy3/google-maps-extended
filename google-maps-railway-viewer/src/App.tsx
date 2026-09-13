@@ -201,6 +201,11 @@ export default function App() {
     [mapData.members, choices, loaded, choice?.id],
   );
   function removeRoute(id: string) {
+    setServiceFilters((previous) => {
+      const next = { ...previous };
+      delete next[id];
+      return next;
+    });
     if (journey?.result.legs?.some((leg) => leg.routeId === id)) setJourney(null);
     const remaining = choices.filter((r) => r.id !== id);
     setChoices(remaining);

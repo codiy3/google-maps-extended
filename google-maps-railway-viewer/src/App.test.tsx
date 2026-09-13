@@ -182,8 +182,17 @@ describe('路線と表示の同期', () => {
     expect((screen.getByRole('checkbox', { name: 'テスト快速' }) as HTMLInputElement).checked).toBe(
       true,
     );
+    fireEvent.click(screen.getByRole('button', { name: 'テスト鉄道A 中央線を地図から外す' }));
+    fireEvent.change(input, { target: { value: '中央線' } });
+    fireEvent.click(screen.getByRole('option'));
+    const restoredList = await screen.findByRole('list', { name: '駅一覧' });
+    expect((screen.getByRole('checkbox', { name: 'テスト快速' }) as HTMLInputElement).checked).toBe(
+      false,
+    );
+    expect(within(restoredList).getAllByRole('button')).toHaveLength(3);
+    fireEvent.click(screen.getByRole('checkbox', { name: 'テスト快速' }));
     fireEvent.click(screen.getByRole('button', { name: /^全駅$/ }));
-    expect(within(list).getAllByRole('button')).toHaveLength(3);
+    expect(within(restoredList).getAllByRole('button')).toHaveLength(3);
   });
 });
 
