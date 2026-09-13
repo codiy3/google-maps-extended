@@ -25,6 +25,8 @@
 **/.cache/
 **/data/raw/
 **/data/intermediate/
+**/public/data/
+**/*.tsbuildinfo
 *.log
 .DS_Store
 

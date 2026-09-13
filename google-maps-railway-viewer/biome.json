@@ -1,0 +1,6 @@
+{
+  "formatter": { "indentStyle": "space", "lineWidth": 100 },
+  "javascript": { "formatter": { "quoteStyle": "single" } },
+  "linter": { "enabled": true, "rules": { "recommended": true } },
+  "files": { "includes": ["src/**", "scripts/**", "vite.config.ts", "index.html"] }
+}
