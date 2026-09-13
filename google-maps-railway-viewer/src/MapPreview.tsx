@@ -10,11 +10,13 @@ export function MapPreview({
   visible,
   selected,
   onSelect,
+  arrivals,
 }: {
   route: RouteDetail | null;
   visible: Map<string, StopState>;
   selected: string | null;
   onSelect: (id: string) => void;
+  arrivals?: ReadonlyMap<string, string>;
 }) {
   const drawing = useMemo(() => {
     if (!route) return null;
@@ -49,6 +51,8 @@ export function MapPreview({
       point,
       paths: route.geometry.map((g) => ({
         id: g.id,
+        color: g.color ?? '#218556',
+        strokeWeight: g.strokeWeight ?? 4,
         points: g.coordinates.map((p) => point(p).join(',')).join(' '),
       })),
     };
@@ -67,8 +71,8 @@ export function MapPreview({
                 key={path.id}
                 points={path.points}
                 fill="none"
-                stroke="#218556"
-                strokeWidth="4"
+                stroke={path.color}
+                strokeWidth={path.strokeWeight}
                 strokeLinecap="round"
                 strokeLinejoin="round"
               />
@@ -76,13 +80,13 @@ export function MapPreview({
           </svg>
           {route.stations
             .filter((s) => visible.has(s.id))
-            .map((station) => {
+            .map((station, index) => {
               const [x, y] = drawing.point(station.position);
               return (
                 <button
                   type="button"
                   key={station.id}
-                  className={`preview-pin ${selected === station.id ? 'selected' : ''} ${visible.get(station.id)}`}
+                  className={`preview-pin ${index % 2 ? 'label-left' : ''} ${selected === station.id ? 'selected' : ''} ${visible.get(station.id)}`}
                   style={{ left: `${x / 9}%`, top: `${y / 9}%` }}
                   title={station.name}
                   aria-label={`${station.name}を選択`}
@@ -97,6 +101,17 @@ export function MapPreview({
                       </text>
                     )}
                   </svg>
+                  <span className="station-name-label">
+                    <span className="station-label-title">
+                      {station.routeColors?.map((color) => (
+                        <i key={color} className="route-dot" style={{ backgroundColor: color }} />
+                      ))}
+                      {station.name}
+                    </span>
+                    {arrivals?.get(station.id) && (
+                      <small className="station-arrival-label">{arrivals.get(station.id)}</small>
+                    )}
+                  </span>
                 </button>
               );
             })}

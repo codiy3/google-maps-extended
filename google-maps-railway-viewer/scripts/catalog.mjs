@@ -8,7 +8,7 @@ export async function verifySearchCatalog(path) {
     throw new Error('表示データを読めません。setup.commandでデータを生成してください。');
   }
   if (
-    catalog?.schemaVersion !== 2 ||
+    catalog?.schemaVersion !== 3 ||
     !Array.isArray(catalog.routes) ||
     catalog.routes.length === 0 ||
     catalog.routes.some(

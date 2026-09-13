@@ -5,6 +5,10 @@ export interface Station {
   name: string;
   position: Position;
   sourceCodes: string[];
+  groupIds?: string[];
+  routeNames?: string[];
+  routeColors?: string[];
+  connections?: Connection[];
 }
 export interface TrainService {
   id: string;
@@ -33,12 +37,45 @@ export interface RouteSummary {
 }
 export interface RouteDetail extends RouteSummary {
   stations: Station[];
-  geometry: { id: string; coordinates: Position[] }[];
+  throughServices?: (Connection & { atStationId: string; atStationName: string })[];
+  storage?: { provider: string; saved: boolean };
+  geometry: {
+    id: string;
+    coordinates: Position[];
+    color?: string;
+    strokeWeight?: number;
+    zIndex?: number;
+  }[];
 }
 export interface Catalog {
-  schemaVersion: 2;
+  schemaVersion: 3;
   dataDate: string;
   releaseReady: boolean;
   notice: string;
   routes: RouteSummary[];
+}
+
+export interface Connection {
+  routeId: string;
+  stationId: string;
+  stationName: string;
+  kind: 'transfer' | 'through';
+  source: string;
+}
+export interface DurationResult {
+  originId: string;
+  start: string;
+  end: string;
+  status: 'available' | 'unavailable';
+  note?: string;
+  sourceUrl?: string;
+  retrievedAt?: string;
+  rows: {
+    stationId: string;
+    status: string;
+    minutes?: number;
+    departure?: string;
+    arrival?: string;
+    incomplete?: boolean;
+  }[];
 }

@@ -1,10 +1,14 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import { fetchCatalog, fetchRoute } from './data';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { fetchCatalog, fetchRoute, restoreRoute } from './data';
 import { GoogleMap } from './GoogleMap';
 import { MapPreview } from './MapPreview';
+import { mapArrivalLabels } from './map-arrivals';
+import { assignRouteColor, combinedGeometry, combineRoutes, type RouteColors } from './map-data';
 import { SearchBox } from './SearchBox';
+import { StationDetails } from './StationDetails';
 import { displayedStops, sortServices, stopLabels } from './services';
 import type { Catalog, RouteDetail, RouteSummary, StopState } from './types';
+import { useStationTimes } from './useStationTimes';
 
 type Load<T> =
   | { status: 'loading' }
@@ -17,6 +21,10 @@ export default function App() {
   const [catalog, setCatalog] = useState<Load<Catalog>>({ status: 'loading' });
   const [catalogAttempt, setCatalogAttempt] = useState(0);
   const [choice, setChoice] = useState<RouteSummary | null>(null);
+  const [choices, setChoices] = useState<RouteSummary[]>([]);
+  const [routeColors, setRouteColors] = useState<RouteColors>({});
+  const [loaded, setLoaded] = useState<Record<string, RouteDetail>>({});
+  const cache = useRef(new Map<string, RouteDetail>());
   const [detail, setDetail] = useState<Load<RouteDetail>>({ status: 'loading' });
   const [detailAttempt, setDetailAttempt] = useState(0);
   const [selected, setSelected] = useState<string | null>(null);
@@ -48,28 +56,40 @@ export default function App() {
     if (!choice) return;
     const controller = new AbortController();
     let current = true;
-    fetchRoute(choice.id, controller.signal)
-      .then((value) => {
-        if (current) setDetail({ status: 'ready', value });
-      })
-      .catch(() => {
-        if (current)
-          setDetail({
-            status: 'error',
-            message: '駅・線路データを読み込めませんでした。再試行してください。',
-          });
-      });
+    for (const selectedRoute of choices) {
+      const saved = cache.current.get(selectedRoute.id);
+      (saved ? Promise.resolve(saved) : fetchRoute(selectedRoute.id, controller.signal))
+        .then((value) => {
+          if (!current) return;
+          cache.current.set(value.id, value);
+          setLoaded((previous) =>
+            previous[value.id] === value ? previous : { ...previous, [value.id]: value },
+          );
+          if (value.id === choice.id) setDetail({ status: 'ready', value });
+        })
+        .catch(() => {
+          if (current && selectedRoute.id === choice.id)
+            setDetail({
+              status: 'error',
+              message: '駅・線路データを読み込めませんでした。保存データから再試行できます。',
+            });
+        });
+    }
     return () => {
       current = false;
       controller.abort();
     };
-  }, [choice, detailAttempt]);
-  function choose(route: RouteSummary) {
+  }, [choice, choices, detailAttempt]);
+  function choose(route: RouteSummary, stationId?: string) {
+    setRouteColors((previous) => assignRouteColor(previous, route.id));
+    setChoices((previous) =>
+      previous.some((r) => r.id === route.id) ? previous : [...previous, route],
+    );
     setChoice(route);
     setDetailAttempt((n) => n + 1);
     setDetail({ status: 'loading' });
     setServiceIds([]);
-    setSelected(null);
+    setSelected(stationId ?? null);
     setExpanded(true);
   }
   const route =
@@ -79,7 +99,86 @@ export default function App() {
     [route, serviceIds],
   );
   const selectStation = useCallback((id: string) => setSelected(id), []);
+  const clearStation = useCallback(() => setSelected(null), []);
   const activeStation = route?.stations.find((s) => s.id === selected && stops.has(s.id));
+  const times = useStationTimes(route?.id, activeStation?.id, serviceIds);
+  const displayRoutes = useMemo(
+    () => choices.flatMap((r) => (loaded[r.id] ? [loaded[r.id]] : [])),
+    [choices, loaded],
+  );
+  const geometry = useMemo(
+    () => combinedGeometry(displayRoutes, routeColors),
+    [displayRoutes, routeColors],
+  );
+  const mapData = useMemo(
+    () => combineRoutes(displayRoutes, choice?.id, serviceIds, routeColors, geometry),
+    [displayRoutes, choice?.id, serviceIds, geometry, routeColors],
+  );
+  const mapSelected =
+    [...mapData.members].find(([, members]) =>
+      members.some((m) => m.routeId === choice?.id && m.stationId === selected),
+    )?.[0] ?? null;
+  const arrivals = useMemo(
+    () =>
+      mapArrivalLabels(mapData.members, route?.id, activeStation?.id, times.result, times.error),
+    [mapData.members, route?.id, activeStation?.id, times.result, times.error],
+  );
+  const selectMapStation = useCallback(
+    (id: string) => {
+      const memberships = mapData.members.get(id);
+      const member = memberships?.find((m) => m.routeId === choice?.id) ?? memberships?.[0];
+      if (!member) return;
+      const next = choices.find((r) => r.id === member.routeId);
+      if (!next) return;
+      setChoice(next);
+      setDetail({ status: 'ready', value: loaded[next.id] });
+      if (next.id !== choice?.id) setServiceIds([]);
+      setSelected(member.stationId);
+      setExpanded(true);
+    },
+    [mapData.members, choices, loaded, choice?.id],
+  );
+  function removeRoute(id: string) {
+    const remaining = choices.filter((r) => r.id !== id);
+    setChoices(remaining);
+    if (choice?.id === id) {
+      setChoice(remaining.at(-1) ?? null);
+      setDetail({ status: 'loading' });
+      setSelected(null);
+      setServiceIds([]);
+    }
+  }
+  function throughLinks(position: 'start' | 'end' | 'middle') {
+    if (!route || catalog.status !== 'ready') return null;
+    const first = route.stations[0]?.id;
+    const last = route.stations.at(-1)?.id;
+    const links = (route.throughServices ?? []).filter((c) =>
+      position === 'start'
+        ? c.atStationId === first
+        : position === 'end'
+          ? c.atStationId === last
+          : c.atStationId !== first && c.atStationId !== last,
+    );
+    if (!links.length) return null;
+    return (
+      <section className="through-links" aria-label="乗換不要の直通先">
+        <span>{position === 'middle' ? '途中駅での直通' : 'この先の直通路線'}</span>
+        {links.map((connection) => {
+          const next = catalog.value.routes.find((r) => r.id === connection.routeId);
+          return next ? (
+            <button
+              type="button"
+              key={`${connection.atStationId}:${next.id}`}
+              onClick={() => choose(next, connection.stationId)}
+            >
+              {connection.atStationName} ↔ {next.operator} {next.name} ↗
+            </button>
+          ) : null;
+        })}
+        <small>直通する列車・行先に限ります。</small>
+      </section>
+    );
+  }
   function toggleService(id: string) {
     setServiceIds((previous) =>
       previous.includes(id) ? previous.filter((v) => v !== id) : [...previous, id],
@@ -171,6 +270,36 @@ export default function App() {
                 </button>
               </div>
             )}
+            {choices.length > 0 && (
+              <section className="selected-lines" aria-label="表示中の路線">
+                <p>
+                  {choices.length}路線を選択・{displayRoutes.length}路線を表示 · 検索して追加
+                </p>
+                {choices.map((line) => (
+                  <div key={line.id}>
+                    <button
+                      type="button"
+                      aria-pressed={choice?.id === line.id}
+                      onClick={() => choose(line)}
+                    >
+                      <span
+                        className="route-swatch"
+                        aria-hidden="true"
+                        style={{ backgroundColor: routeColors[line.id] }}
+                      />
+                      {line.operator} {line.name}
+                    </button>
+                    <button
+                      type="button"
+                      aria-label={`${line.operator} ${line.name}を地図から外す`}
+                      onClick={() => removeRoute(line.id)}
+                    >
+                      ×
+                    </button>
+                  </div>
+                ))}
+              </section>
+            )}
             {!choice && (
               <p className="search-hint">
                 山手線、新宿駅、JR東日本など。
@@ -207,11 +336,7 @@ export default function App() {
                       type="button"
                       className="text-button"
                       aria-label="路線の選択を解除"
-                      onClick={() => {
-                        setChoice(null);
-                        setSelected(null);
-                        setServiceIds([]);
-                      }}
+                      onClick={() => removeRoute(choice.id)}
                     >
                       ×
                     </button>
@@ -226,9 +351,19 @@ export default function App() {
                       <p>{detail.message}</p>
                       <button
                         type="button"
-                        onClick={() => {
+                        onClick={async () => {
                           setDetail({ status: 'loading' });
-                          setDetailAttempt((n) => n + 1);
+                          try {
+                            await restoreRoute(choice.id);
+                            cache.current.delete(choice.id);
+                            setDetailAttempt((n) => n + 1);
+                          } catch {
+                            setDetail({
+                              status: 'error',
+                              message:
+                                '復元できませんでした。元データを npm run data:build で再生成してください。',
+                            });
+                          }
                         }}
                       >
                         路線を再試行
@@ -238,6 +373,18 @@ export default function App() {
                   {route && (
                     <>
                       <p className="section-description">{route.section}</p>
+                      {route.storage?.saved && <p className="saved-badge">ローカルDBに保存済み</p>}
+                      {throughLinks('middle')}
+                      {activeStation && catalog.status === 'ready' && (
+                        <StationDetails
+                          route={route}
+                          station={activeStation}
+                          routes={catalog.value.routes}
+                          onNavigate={choose}
+                          times={times}
+                          key={route.id}
+                        />
+                      )}
                       {route.kind === 'source_railway' && (
                         <p className="data-note">
                           基礎データの路線区分です。案内上の運行系統とは異なる場合があります。
@@ -277,7 +424,7 @@ export default function App() {
                           <p className="muted">この路線の種別・停車パターンは未取得です。</p>
                         )}
                         <p className="timetable-note">
-                          所要時間順：時刻表未取得のため利用できません。
+                          駅を選ぶと、乗り換え先と各駅までの所要時間を確認できます。
                         </p>
                         {serviceIds.length > 0 && (
                           <p className="muted">
@@ -293,6 +440,7 @@ export default function App() {
                           {route.stationOrder === 'route' ? '路線順' : '駅名順・停車順未確認'}
                         </span>
                       </div>
+                      {throughLinks('start')}
                       <ul className="station-list" aria-label="駅一覧">
                         {route.stations
                           .filter((station) => stops.has(station.id))
@@ -305,7 +453,9 @@ export default function App() {
                                 onClick={() => selectStation(station.id)}
                               >
                                 <span className="station-number">
-                                  {String(index + 1).padStart(2, '0')}
+                                  {route.stationOrder === 'route'
+                                    ? String(index + 1).padStart(2, '0')
+                                    : '•'}
                                 </span>
                                 <span className="station-name">
                                   {station.name}
@@ -318,6 +468,7 @@ export default function App() {
                             </li>
                           ))}
                       </ul>
+                      {throughLinks('end')}
                       {stops.size === 0 && (
                         <p className="panel-message">
                           選択した種類で停車を確認できる駅がありません。
@@ -354,17 +505,20 @@ export default function App() {
           {useGoogleMap ? (
             <GoogleMap
               apiKey={apiKey}
-              route={route}
-              visible={stops}
-              selected={selected}
-              onSelect={selectStation}
+              route={mapData.route}
+              visible={mapData.visible}
+              selected={mapSelected}
+              onSelect={selectMapStation}
+              onClear={clearStation}
+              arrivals={arrivals}
             />
           ) : (
             <MapPreview
-              route={route}
-              visible={stops}
-              selected={selected}
-              onSelect={selectStation}
+              route={mapData.route}
+              visible={mapData.visible}
+              selected={mapSelected}
+              onSelect={selectMapStation}
+              arrivals={arrivals}
             />
           )}
           {!useGoogleMap && (

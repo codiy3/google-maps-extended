@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
+import re
 import sys
 from collections import defaultdict
 from pathlib import Path
@@ -12,6 +14,8 @@ from typing import Any
 from pyproj import Transformer
 from shapely.geometry import LineString
 
+from .connections import add_connections
+from .metro import add_metro
 from .n02 import (
     DATA_DATE,
     SOURCE_PAGE,
@@ -87,6 +91,9 @@ def build_display_data(
         elif name == "4号線(中央線)" and record["operator"] == "大阪市高速電気軌道":
             name = "中央線"
             aliases = ["大阪メトロ中央線", "4号線(中央線)"]
+        if record["operator"] == "東京地下鉄":
+            aliases.append(name)
+            name = re.sub(r"^\d+号線", "", name)
         stations = []
         for code, info in record["stations"].items():
             # 複数ホームの線形から最長を選ぶ。同名の別駅は統合しない。
@@ -97,6 +104,7 @@ def build_display_data(
                     "name": info["name"],
                     "position": wgs84(representative(coordinates(longest))),
                     "sourceCodes": [code],
+                    "groupIds": [f"n02-25-group-{info['group']}"],
                 }
             )
         geometry = [
@@ -135,17 +143,22 @@ def build_display_data(
     }
     add_yamanote(details, station_lines)
     add_chuo_services(details, station_lines)
+    add_metro(details, station_lines)
+    add_connections(details)
     for route in details.values():
         # 実際に表示する所属駅から索引を作り、近接だけで路線を追加しない。
         route["stationNames"] = sorted({s["name"] for s in route["stations"]})
         route["operatorAliases"] = OPERATOR_ALIASES.get(route["officialOperator"], [])
     catalog = {
-        "schemaVersion": 2,
+        "schemaVersion": 3,
+        "dataRevision": hashlib.sha256(
+            json.dumps(details, ensure_ascii=False, sort_keys=True).encode()
+        ).hexdigest(),
         "dataDate": DATA_DATE,
         "releaseReady": False,
         "notice": "国土数値情報（鉄道データ）（国土交通省）を加工して作成",
         "routes": [
-            {k: v for k, v in route.items() if k not in ("stations", "geometry")}
+            {k: v for k, v in route.items() if k not in ("stations", "geometry", "throughServices")}
             for route in details.values()
         ],
     }

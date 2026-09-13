@@ -550,6 +550,77 @@ p {
   transform: scale(1.3);
   transform-origin: center bottom;
 }
+.station-marker {
+  position: relative;
+  display: flex;
+  cursor: pointer;
+}
+.station-name-label {
+  position: absolute;
+  left: calc(100% + 3px);
+  top: 0;
+  display: inline-flex;
+  align-items: flex-start;
+  flex-direction: column;
+  gap: 3px;
+  padding: 3px 5px;
+  border: 1px solid #ccd8d0;
+  border-radius: 4px;
+  background: #ffffffed;
+  box-shadow: 0 1px 3px #18372826;
+  color: #203b2c;
+  font:
+    600 11px / 1.2 system-ui,
+    sans-serif;
+  white-space: nowrap;
+}
+.station-label-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+.station-arrival-label {
+  font-size: 10px;
+  font-weight: 500;
+  color: #476153;
+}
+.station-info-heading {
+  margin: 10px 0 4px;
+  font:
+    700 20px / 1.4 system-ui,
+    sans-serif;
+  color: #214335;
+}
+.station-info-body {
+  max-width: 260px;
+  font:
+    12px / 1.6 system-ui,
+    sans-serif;
+  color: #476153;
+}
+.station-info-body p {
+  margin: 8px 0 0;
+  font-size: 11px;
+}
+.label-left .station-name-label {
+  left: auto;
+  right: calc(100% + 3px);
+}
+.route-dot {
+  display: inline-block;
+  width: 5px;
+  height: 10px;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+.route-swatch {
+  display: inline-block;
+  width: 18px;
+  height: 5px;
+  margin-right: 7px;
+  border-radius: 3px;
+  vertical-align: middle;
+}
 .map-welcome {
   width: fit-content;
   padding: 30px 60px;
@@ -879,8 +950,177 @@ p {
   }
 }
 
+.through-links > span {
+  font-size: 12px;
+  font-weight: 700;
+}
 .station-list-heading h3 span {
   font-size: 14px;
   margin-left: 6px;
   color: #33764d;
+}
+
+.selected-lines {
+  margin-top: 12px;
+  max-height: 150px;
+  overflow: auto;
+}
+.selected-lines p {
+  margin: 0 0 6px;
+  font-size: 11px;
+  color: #58665f;
+}
+.selected-lines > div {
+  display: flex;
+  gap: 2px;
+  margin: 4px 0;
+}
+.selected-lines button {
+  border: 1px solid #d9e3dc;
+  background: white;
+  color: #244636;
+  border-radius: 6px;
+  padding: 5px 7px;
+  font-size: 11px;
+}
+.selected-lines button:first-child {
+  flex: 1;
+  text-align: left;
+}
+.selected-lines button[aria-pressed="true"] {
+  background: #e4f1e9;
+  border-color: #218556;
+}
+.saved-badge {
+  font-size: 11px;
+  color: #287149;
+  margin: 6px 0;
+}
+.through-links {
+  padding: 12px;
+  border-left: 3px solid #218556;
+  margin: 12px 0;
+  background: #eef6f0;
+  display: grid;
+  gap: 8px;
+}
+
+.through-links button {
+  background: white;
+  color: #20523b;
+  border: 1px solid #cddfd2;
+  border-radius: 6px;
+  font-size: 12px;
+  text-align: left;
+  padding: 8px;
+}
+.through-links small {
+  font-size: 10px;
+  color: #58665f;
+}
+.station-details {
+  margin: 20px 0;
+  padding: 16px 12px;
+  border: 1px solid #cbded0;
+  border-radius: 12px;
+  background: #fafdfb;
+}
+.station-details h3 {
+  margin: 5px 0 18px;
+  font-size: 21px;
+}
+.station-details h4 {
+  font-size: 13px;
+  margin: 20px 0 10px;
+}
+.connection-list,
+.duration-list {
+  padding: 0;
+  list-style: none;
+}
+.connection-list button {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  gap: 6px;
+  background: white;
+  color: #214a35;
+  border: 1px solid #dce6df;
+  border-radius: 7px;
+  padding: 9px;
+  text-align: left;
+  margin: 5px 0;
+  font-size: 13px;
+}
+.connection-list small {
+  display: block;
+  font-size: 10px;
+  color: #6b756f;
+  margin-top: 3px;
+}
+.connection-kind {
+  font-size: 10px;
+  flex-shrink: 0;
+}
+.time-field {
+  display: grid;
+  gap: 7px;
+  font-size: 11px;
+}
+.time-field input {
+  padding: 8px;
+  border: 1px solid #cddbd2;
+  border-radius: 6px;
+  min-width: 0;
+  width: 100%;
+}
+.duration-list {
+  max-height: 330px;
+  overflow: auto;
+}
+.duration-list li {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 12px;
+  border-bottom: 1px solid #e2e9e4;
+  padding: 9px 0;
+}
+.duration-list li > span:last-child {
+  text-align: right;
+  font-size: 10px;
+  color: #627167;
+}
+.duration-list strong {
+  font-size: 15px;
+  color: #205a39;
+}
+.duration-list small {
+  display: block;
+  font-size: 10px;
+}
+@media (max-width: 800px) {
+  .selected-lines {
+    max-height: 92px;
+    display: flex;
+    gap: 5px;
+    flex-wrap: wrap;
+    margin: 7px 0 0;
+  }
+  .selected-lines p {
+    width: 100%;
+    margin: 0;
+  }
+  .selected-lines > div {
+    margin: 0;
+    max-width: 100%;
+  }
+  .selected-lines button {
+    font-size: 10px;
+    padding: 4px 6px;
+  }
+  .search-section:has(.selected-lines) {
+    padding-bottom: 8px;
+  }
 }

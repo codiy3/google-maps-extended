@@ -32,3 +32,6 @@
 
 # Temporary personal tooling
 .tools/
+
+# ローカルデータベース（取得内容・環境依存の情報はGitへ含めない）
+google-maps-railway-viewer/data/local/
