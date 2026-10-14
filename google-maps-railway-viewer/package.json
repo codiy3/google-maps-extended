@@ -19,7 +19,7 @@
     "data:build": "uv run --locked python -m railway_data.export --archive data/raw/N02-25_GML.zip"
   },
   "dependencies": {
-    "@googlemaps/js-api-loader": "2.1.1",
+    "@googlemaps/js-api-loader": "2.1.3",
     "leaflet": "1.9.4",
     "react": "19.3.0",
     "react-dom": "19.3.0"
