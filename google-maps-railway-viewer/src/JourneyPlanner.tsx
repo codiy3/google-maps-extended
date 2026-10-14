@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { fetchStations, isStaticMode, searchJourneys } from './data';
 import type {
   JourneyResponse,
   JourneySelection,
@@ -62,18 +63,9 @@ export function JourneyPlanner({
     const abort = new AbortController();
     let current = true;
     setCatalogError('');
-    fetch('/api/stations', { signal: abort.signal })
-      .then(async (r) => {
-        if (!r.ok) throw new Error();
-        const value = await r.json();
-        if (
-          !Array.isArray(value.stations) ||
-          value.stations.some(
-            (s: StationChoice) => !s.id || !Array.isArray(s.members) || !Array.isArray(s.names),
-          )
-        )
-          throw new Error();
-        if (current) setStations(value.stations);
+    fetchStations(abort.signal)
+      .then((value) => {
+        if (current) setStations(value);
       })
       .catch(() => {
         if (current) setCatalogError('駅一覧を読み込めませんでした。');
@@ -105,14 +97,10 @@ export function JourneyPlanner({
     setError('');
     onSelect(null);
     try {
-      const http = await fetch('/api/journeys', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'X-Railway-Request': '1' },
-        body: key,
-        signal: abort.signal,
-      });
-      const value = await http.json();
-      if (!http.ok) throw new Error(value.message || '経路を取得できませんでした。');
+      const value = await searchJourneys(
+        { ...request, stops: points.flatMap((p) => (p.station ? [p.station.id] : [])) },
+        abort.signal,
+      );
       if (
         !value.distance ||
         !value.time ||
@@ -265,7 +253,11 @@ export function JourneyPlanner({
         <p className="muted">路線の詳細で選択した列車種別を経路にも適用します。</p>
       )}
       {loading && (
-        <p role="status">保存済みの線路データから探索中です。初回は経路用データを作成します。</p>
+        <p role="status">
+          {isStaticMode()
+            ? '公開済みの線路データから探索中です。初回は経路用データを読み込みます。'
+            : '保存済みの線路データから探索中です。初回は経路用データを作成します。'}
+        </p>
       )}
       {error && <p role="alert">{error}</p>}
       {response && !result && (
