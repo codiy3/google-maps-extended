@@ -39,6 +39,8 @@ jobs:
       - run: npm test
       - run: npm run test:launch
       - run: npm run build:public
+        env:
+          VITE_GOOGLE_MAPS_API_KEY: RAILWAY_PUBLIC_BUILD_TEST_KEY_NOT_A_REAL_KEY
       - run: node scripts/verify-public.mjs
       - uses: actions/upload-pages-artifact@56afc609e74202658d3ffba0e8f6dda462b719fa # v3
         if: github.event_name != 'pull_request'

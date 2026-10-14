@@ -19,6 +19,8 @@ for (const path of paths) {
     throw new Error(`公開対象にローカルファイルがあります: ${path}`);
   if (/\.(?:js|json|html|css)$/.test(path)) {
     const content = await readFile(path, 'utf8');
+    if (content.includes('RAILWAY_PUBLIC_BUILD_TEST_KEY_NOT_A_REAL_KEY'))
+      throw new Error(`公開ビルドへ検証用キーが混入しました: ${path}`);
     if (
       /AIza[0-9A-Za-z_-]{35}|gh[pousr]_[A-Za-z0-9]{30,}|-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----/.test(
         content,
