@@ -1,0 +1,533 @@
+{
+  "network": {
+    "schemaVersion": 1,
+    "stations": [
+      {
+        "id": "A",
+        "name": "A",
+        "names": ["A"],
+        "position": [139.0, 35.0],
+        "members": [
+          {
+            "routeId": "detour",
+            "stationId": "detour-A",
+            "stationName": "A",
+            "routeName": "detour",
+            "operator": "テスト鉄道",
+            "prefectures": ["テスト地域"]
+          },
+          {
+            "routeId": "short",
+            "stationId": "short-A",
+            "stationName": "A",
+            "routeName": "short",
+            "operator": "テスト鉄道",
+            "prefectures": ["テスト地域"]
+          }
+        ]
+      },
+      {
+        "id": "C",
+        "name": "C",
+        "names": ["C"],
+        "position": [139.02, 35.0],
+        "members": [
+          {
+            "routeId": "detour",
+            "stationId": "detour-C",
+            "stationName": "C",
+            "routeName": "detour",
+            "operator": "テスト鉄道",
+            "prefectures": ["テスト地域"]
+          },
+          {
+            "routeId": "short",
+            "stationId": "short-C",
+            "stationName": "C",
+            "routeName": "short",
+            "operator": "テスト鉄道",
+            "prefectures": ["テスト地域"]
+          }
+        ]
+      },
+      {
+        "id": "D",
+        "name": "D",
+        "names": ["D"],
+        "position": [139.01, 34.99],
+        "members": [
+          {
+            "routeId": "crossing",
+            "stationId": "crossing-D",
+            "stationName": "D",
+            "routeName": "crossing",
+            "operator": "テスト鉄道",
+            "prefectures": ["テスト地域"]
+          }
+        ]
+      },
+      {
+        "id": "E",
+        "name": "E",
+        "names": ["E"],
+        "position": [139.01, 35.01],
+        "members": [
+          {
+            "routeId": "crossing",
+            "stationId": "crossing-E",
+            "stationName": "E",
+            "routeName": "crossing",
+            "operator": "テスト鉄道",
+            "prefectures": ["テスト地域"]
+          }
+        ]
+      },
+      {
+        "id": "X",
+        "name": "X",
+        "names": ["X"],
+        "position": [139.01, 35.02],
+        "members": [
+          {
+            "routeId": "detour",
+            "stationId": "detour-X",
+            "stationName": "X",
+            "routeName": "detour",
+            "operator": "テスト鉄道",
+            "prefectures": ["テスト地域"]
+          }
+        ]
+      }
+    ],
+    "groups": {
+      "A": 0,
+      "C": 1,
+      "D": 2,
+      "E": 3,
+      "X": 4
+    },
+    "stationNodes": {
+      "8": {
+        "routeId": "detour",
+        "stationId": "detour-A",
+        "stationName": "A",
+        "groupId": "A"
+      },
+      "9": {
+        "routeId": "detour",
+        "stationId": "detour-X",
+        "stationName": "X",
+        "groupId": "X"
+      },
+      "10": {
+        "routeId": "detour",
+        "stationId": "detour-C",
+        "stationName": "C",
+        "groupId": "C"
+      },
+      "13": {
+        "routeId": "short",
+        "stationId": "short-A",
+        "stationName": "A",
+        "groupId": "A"
+      },
+      "14": {
+        "routeId": "short",
+        "stationId": "short-C",
+        "stationName": "C",
+        "groupId": "C"
+      },
+      "17": {
+        "routeId": "crossing",
+        "stationId": "crossing-D",
+        "stationName": "D",
+        "groupId": "D"
+      },
+      "18": {
+        "routeId": "crossing",
+        "stationId": "crossing-E",
+        "stationName": "E",
+        "groupId": "E"
+      }
+    },
+    "edges": [
+      {
+        "a": 5,
+        "b": 6,
+        "meters": 2405.863450592616,
+        "routeId": "detour",
+        "kind": "rail",
+        "coordinates": [[139.0, 35.0], [139.01, 35.02]],
+        "stationId": null
+      },
+      {
+        "a": 6,
+        "b": 7,
+        "meters": 2405.863450593598,
+        "routeId": "detour",
+        "kind": "rail",
+        "coordinates": [[139.01, 35.02], [139.02, 35.0]],
+        "stationId": null
+      },
+      {
+        "a": 0,
+        "b": 8,
+        "meters": 0,
+        "routeId": null,
+        "kind": "group",
+        "coordinates": [],
+        "stationId": null
+      },
+      {
+        "a": 8,
+        "b": 5,
+        "meters": 0,
+        "routeId": "detour",
+        "kind": "access",
+        "coordinates": [],
+        "stationId": "detour-A"
+      },
+      {
+        "a": 4,
+        "b": 9,
+        "meters": 0,
+        "routeId": null,
+        "kind": "group",
+        "coordinates": [],
+        "stationId": null
+      },
+      {
+        "a": 9,
+        "b": 6,
+        "meters": 0,
+        "routeId": "detour",
+        "kind": "access",
+        "coordinates": [],
+        "stationId": "detour-X"
+      },
+      {
+        "a": 1,
+        "b": 10,
+        "meters": 0,
+        "routeId": null,
+        "kind": "group",
+        "coordinates": [],
+        "stationId": null
+      },
+      {
+        "a": 10,
+        "b": 7,
+        "meters": 0,
+        "routeId": "detour",
+        "kind": "access",
+        "coordinates": [],
+        "stationId": "detour-C"
+      },
+      {
+        "a": 11,
+        "b": 12,
+        "meters": 1823.7601114059446,
+        "routeId": "short",
+        "kind": "rail",
+        "coordinates": [[139.0, 35.0], [139.02, 35.0]],
+        "stationId": null
+      },
+      {
+        "a": 0,
+        "b": 13,
+        "meters": 0,
+        "routeId": null,
+        "kind": "group",
+        "coordinates": [],
+        "stationId": null
+      },
+      {
+        "a": 13,
+        "b": 11,
+        "meters": 0,
+        "routeId": "short",
+        "kind": "access",
+        "coordinates": [],
+        "stationId": "short-A"
+      },
+      {
+        "a": 1,
+        "b": 14,
+        "meters": 0,
+        "routeId": null,
+        "kind": "group",
+        "coordinates": [],
+        "stationId": null
+      },
+      {
+        "a": 14,
+        "b": 12,
+        "meters": 0,
+        "routeId": "short",
+        "kind": "access",
+        "coordinates": [],
+        "stationId": "short-C"
+      },
+      {
+        "a": 15,
+        "b": 16,
+        "meters": 2226.399999999557,
+        "routeId": "crossing",
+        "kind": "rail",
+        "coordinates": [[139.01, 34.99], [139.01, 35.01]],
+        "stationId": null
+      },
+      {
+        "a": 2,
+        "b": 17,
+        "meters": 0,
+        "routeId": null,
+        "kind": "group",
+        "coordinates": [],
+        "stationId": null
+      },
+      {
+        "a": 17,
+        "b": 15,
+        "meters": 0,
+        "routeId": "crossing",
+        "kind": "access",
+        "coordinates": [],
+        "stationId": "crossing-D"
+      },
+      {
+        "a": 3,
+        "b": 18,
+        "meters": 0,
+        "routeId": null,
+        "kind": "group",
+        "coordinates": [],
+        "stationId": null
+      },
+      {
+        "a": 18,
+        "b": 16,
+        "meters": 0,
+        "routeId": "crossing",
+        "kind": "access",
+        "coordinates": [],
+        "stationId": "crossing-E"
+      }
+    ],
+    "excluded": [],
+    "nodeCount": 19
+  },
+  "routes": {
+    "detour": {
+      "services": []
+    },
+    "short": {
+      "services": [
+        {
+          "id": "fast",
+          "name": "快速",
+          "rank": 1,
+          "stops": {
+            "short-A": "none",
+            "short-C": "common"
+          }
+        }
+      ]
+    },
+    "crossing": {
+      "services": []
+    }
+  },
+  "cases": [
+    {
+      "name": "direct",
+      "stops": ["A", "C"],
+      "filters": {},
+      "expected": {
+        "status": "available",
+        "kind": "distance",
+        "meters": 1824,
+        "legs": [
+          {
+            "routeId": "short",
+            "fromStationId": "short-A",
+            "toStationId": "short-C",
+            "fromName": "A",
+            "toName": "C",
+            "geometry": [
+              {
+                "id": "journey-0-0",
+                "coordinates": [[139.0, 35.0], [139.02, 35.0]]
+              }
+            ],
+            "meters": 1824
+          }
+        ],
+        "message": "線路データ上の候補です。概算走行距離のみで比較し、乗換歩行・運転日・実際の列車の接続は確認していません。"
+      }
+    },
+    {
+      "name": "via",
+      "stops": ["A", "X", "C"],
+      "filters": {},
+      "expected": {
+        "status": "available",
+        "kind": "distance",
+        "meters": 4812,
+        "legs": [
+          {
+            "routeId": "detour",
+            "fromStationId": "detour-A",
+            "toStationId": "detour-X",
+            "fromName": "A",
+            "toName": "X",
+            "geometry": [
+              {
+                "id": "journey-0-0",
+                "coordinates": [[139.0, 35.0], [139.01, 35.02]]
+              }
+            ],
+            "meters": 2406
+          },
+          {
+            "routeId": "detour",
+            "fromStationId": "detour-X",
+            "toStationId": "detour-C",
+            "fromName": "X",
+            "toName": "C",
+            "geometry": [
+              {
+                "id": "journey-1-0",
+                "coordinates": [[139.01, 35.02], [139.02, 35.0]]
+              }
+            ],
+            "meters": 2406
+          }
+        ],
+        "message": "線路データ上の候補です。概算走行距離のみで比較し、乗換歩行・運転日・実際の列車の接続は確認していません。"
+      }
+    },
+    {
+      "name": "roundTrip",
+      "stops": ["A", "X", "X", "A"],
+      "filters": {},
+      "expected": {
+        "status": "available",
+        "kind": "distance",
+        "meters": 4812,
+        "legs": [
+          {
+            "routeId": "detour",
+            "fromStationId": "detour-A",
+            "toStationId": "detour-X",
+            "fromName": "A",
+            "toName": "X",
+            "geometry": [
+              {
+                "id": "journey-0-0",
+                "coordinates": [[139.0, 35.0], [139.01, 35.02]]
+              }
+            ],
+            "meters": 2406
+          },
+          {
+            "routeId": "detour",
+            "fromStationId": "detour-X",
+            "toStationId": "detour-A",
+            "fromName": "X",
+            "toName": "A",
+            "geometry": [
+              {
+                "id": "journey-1-0",
+                "coordinates": [[139.01, 35.02], [139.0, 35.0]]
+              }
+            ],
+            "meters": 2406
+          }
+        ],
+        "message": "線路データ上の候補です。概算走行距離のみで比較し、乗換歩行・運転日・実際の列車の接続は確認していません。"
+      }
+    },
+    {
+      "name": "sameStation",
+      "stops": ["A", "A"],
+      "filters": {},
+      "expected": {
+        "status": "available",
+        "kind": "distance",
+        "meters": 0,
+        "legs": [],
+        "message": "線路データ上の候補です。概算走行距離のみで比較し、乗換歩行・運転日・実際の列車の接続は確認していません。"
+      }
+    },
+    {
+      "name": "filtered",
+      "stops": ["A", "C"],
+      "filters": {
+        "short": ["fast"]
+      },
+      "expected": {
+        "status": "available",
+        "kind": "distance",
+        "meters": 4812,
+        "legs": [
+          {
+            "routeId": "detour",
+            "fromStationId": "detour-A",
+            "toStationId": "detour-C",
+            "fromName": "A",
+            "toName": "C",
+            "geometry": [
+              {
+                "id": "journey-0-0",
+                "coordinates": [[139.0, 35.0], [139.01, 35.02]]
+              },
+              {
+                "id": "journey-0-1",
+                "coordinates": [[139.01, 35.02], [139.02, 35.0]]
+              }
+            ],
+            "meters": 4812
+          }
+        ],
+        "message": "線路データ上の候補です。概算走行距離のみで比較し、乗換歩行・運転日・実際の列車の接続は確認していません。"
+      }
+    },
+    {
+      "name": "reverse",
+      "stops": ["C", "A"],
+      "filters": {},
+      "expected": {
+        "status": "available",
+        "kind": "distance",
+        "meters": 1824,
+        "legs": [
+          {
+            "routeId": "short",
+            "fromStationId": "short-C",
+            "toStationId": "short-A",
+            "fromName": "C",
+            "toName": "A",
+            "geometry": [
+              {
+                "id": "journey-0-0",
+                "coordinates": [[139.02, 35.0], [139.0, 35.0]]
+              }
+            ],
+            "meters": 1824
+          }
+        ],
+        "message": "線路データ上の候補です。概算走行距離のみで比較し、乗換歩行・運転日・実際の列車の接続は確認していません。"
+      }
+    },
+    {
+      "name": "disconnected",
+      "stops": ["A", "E"],
+      "filters": {},
+      "expected": {
+        "status": "unavailable",
+        "message": "指定した駅と条件をつなぐ線形を確認できません。未接続の区間を直線で補っていません。"
+      }
+    }
+  ]
+}

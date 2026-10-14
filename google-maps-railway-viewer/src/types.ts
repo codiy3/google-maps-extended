@@ -51,6 +51,7 @@ export interface RouteDetail extends RouteSummary {
 }
 export interface Catalog {
   schemaVersion: 3;
+  dataRevision?: string;
   dataDate: string;
   releaseReady: boolean;
   notice: string;

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { fetchCatalog, fetchRoute, restoreRoute } from './data';
+import { fetchCatalog, fetchRoute, isStaticMode, restoreRoute } from './data';
 import { GoogleMap } from './GoogleMap';
 import { JourneyPlanner } from './JourneyPlanner';
 import { journeyGeometry, journeyMapCaption, journeyStopLabels } from './journey-map';
@@ -7,6 +7,7 @@ import type { JourneySelection, ServiceFilters } from './journey-types';
 import { MapPreview } from './MapPreview';
 import { mapArrivalLabels } from './map-arrivals';
 import { assignRouteColor, combinedGeometry, combineRoutes, type RouteColors } from './map-data';
+import { OpenMap } from './OpenMap';
 import { SearchBox } from './SearchBox';
 import { StationDetails } from './StationDetails';
 import { displayedStops, sortServices, stopLabels } from './services';
@@ -22,6 +23,8 @@ const noServices: string[] = [];
 export default function App() {
   const apiKey = (import.meta.env.VITE_GOOGLE_MAPS_API_KEY || '').trim();
   const useGoogleMap = import.meta.env.VITE_GOOGLE_MAPS_MODE === 'google' && Boolean(apiKey);
+  const useOpenMap = import.meta.env.VITE_GOOGLE_MAPS_MODE === 'osm';
+  const publicDemo = isStaticMode();
   const [catalog, setCatalog] = useState<Load<Catalog>>({ status: 'loading' });
   const [catalogAttempt, setCatalogAttempt] = useState(0);
   const [choice, setChoice] = useState<RouteSummary | null>(null);
@@ -255,7 +258,7 @@ export default function App() {
   return (
     <main className="app-shell">
       <header className="app-header">
-        <a href="/" className="brand">
+        <a href={import.meta.env.BASE_URL} className="brand">
           <span className="brand-mark" aria-hidden="true">
             ↗
           </span>
@@ -264,7 +267,7 @@ export default function App() {
           </span>
         </a>
         <div className="header-actions">
-          <span className="preview-label">開発版</span>
+          <span className="preview-label">{publicDemo ? '課題用デモ' : '開発版'}</span>
           <button
             type="button"
             className="text-button"
@@ -293,18 +296,21 @@ export default function App() {
       {showSetup && (
         <aside className="setup-panel" aria-label="地図の設定とデータについて">
           <div>
-            <strong>Google マップの設定</strong>
+            <strong>{publicDemo ? '公開デモの地図' : 'Google マップの設定'}</strong>
             <p>
-              初期設定は線形プレビューです。無料のMaps Demo Keyを用意した後、READMEの手順でGoogle
-              マップへの接続を有効にしてください。
+              {publicDemo
+                ? '公開版はOpenStreetMapを使っています。ローカルでGoogle Mapsを試す場合は、GitHubのREADMEにMaps Demo Keyの設定手順があります。'
+                : '初期設定は線形プレビューです。無料のMaps Demo Keyを用意した後、READMEの手順でGoogle マップへの接続を有効にしてください。'}
             </p>
             <p>
               現在：
-              {useGoogleMap
-                ? 'Google マップ接続あり（認証状態は地図で確認）'
-                : apiKey
-                  ? 'キー保存済み・Google マップ接続は無効'
-                  : 'キー未設定・線形プレビューで表示'}
+              {useOpenMap
+                ? 'OpenStreetMap（Google APIキー不要）'
+                : useGoogleMap
+                  ? 'Google マップ接続あり（認証状態は地図で確認）'
+                  : apiKey
+                    ? 'キー保存済み・Google マップ接続は無効'
+                    : 'キー未設定・線形プレビューで表示'}
             </p>
           </div>
           <div>
@@ -319,6 +325,19 @@ export default function App() {
             >
               出典・利用条件を確認 ↗
             </a>
+            {publicDemo && (
+              <p>
+                <a
+                  href="https://github.com/codiy3/google-maps-extended"
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  開発コード・使い方（GitHub） ↗
+                </a>
+                <br />
+                実時刻表は未収録です。距離経路は線路データ上の概算候補です。
+              </p>
+            )}
           </div>
           <button type="button" className="text-button" onClick={() => setShowSetup(false)}>
             閉じる
@@ -477,8 +496,9 @@ export default function App() {
                         } catch {
                           setDetail({
                             status: 'error',
-                            message:
-                              '復元できませんでした。元データを npm run data:build で再生成してください。',
+                            message: publicDemo
+                              ? '公開データを再取得できませんでした。しばらくしてから再試行してください。'
+                              : '復元できませんでした。元データを npm run data:build で再生成してください。',
                           });
                         }
                       }}
@@ -490,7 +510,11 @@ export default function App() {
                 {route && (
                   <>
                     <p className="section-description">{route.section}</p>
-                    {route.storage?.saved && <p className="saved-badge">ローカルDBに保存済み</p>}
+                    {publicDemo ? (
+                      <p className="saved-badge">公開済みデータ · 実時刻表は未収録</p>
+                    ) : (
+                      route.storage?.saved && <p className="saved-badge">ローカルDBに保存済み</p>
+                    )}
                     {throughLinks('middle')}
                     {activeStation && catalog.status === 'ready' && (
                       <StationDetails
@@ -631,6 +655,15 @@ export default function App() {
               onClear={clearStation}
               arrivals={arrivals}
             />
+          ) : useOpenMap ? (
+            <OpenMap
+              route={mapData.route}
+              visible={mapData.visible}
+              selected={mapSelected}
+              onSelect={selectMapStation}
+              onClear={clearStation}
+              arrivals={arrivals}
+            />
           ) : (
             <MapPreview
               route={mapData.route}
@@ -640,7 +673,7 @@ export default function App() {
               arrivals={arrivals}
             />
           )}
-          {!useGoogleMap && (
+          {!useGoogleMap && !useOpenMap && (
             <button type="button" className="map-setup-button" onClick={() => setShowSetup(true)}>
               Google マップを設定 ↗
             </button>

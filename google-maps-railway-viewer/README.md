@@ -19,9 +19,17 @@
 
 全国の運行系統の照合、列車種別・停車パターン・時刻表の取得は未完了です。種別の複数選択と停車の集約処理は実装し、テスト用データで検証していますが、実在路線には未取得の種別を作りません。駅から全駅への所要時間欄と計算処理は実装済みですが、実在路線の時刻表は未取得のため分数を表示できません。種別の所要時間順への並べ替えは未実装です。この状態を全国対応の正式リリースとは扱いません。
 
+## ブラウザだけで試す公開版
+
+[公開デモ](https://codiy3.github.io/google-maps-extended/)はWindows・macOSなどの最近のブラウザから、インストール・ログイン・APIキーなしで利用できます。OpenStreetMapを背景に、路線・駅・会社の検索、複数路線、駅詳細、経由駅を含む線路上の最短距離候補を表示します。
+
+公開版は課題用の試作です。全国の運行系統照合・列車種別・実時刻表は未完了で、時間経路・到着時刻は未計算になります。駅順未照合の候補にはその旨を表示します。
+
+公開版ではPythonサーバーやSQLiteを配信せず、Pythonで生成したJSONを読み、経路探索をWeb Workerで行います。[公開構成の詳細](../docs/public-demo.md)
+
 ## macOSで初回の準備
 
-配置先は `/Users/mk/Documents/google-maps-extended/google-maps-railway-viewer` です。
+リポジトリを取得し、`google-maps-extended/google-maps-railway-viewer` に移動します。
 
 1. Finderでこのフォルダの `setup.command` を開きます。ターミナルから `./setup.command` でも実行できます。
 2. 公式Node.js 24.21.0をリポジトリ内の `.tools/` に取得し、固定したSHA-256を照合します。Apple SiliconとIntelの取得先を切り替えます。
@@ -35,7 +43,7 @@ uvはこのPCに導入済みです。別のPCでは[uvの公式導入手順](htt
 Finderから `start.command` を開くと、既定ブラウザで `http://127.0.0.1:5173` を開きます。ターミナルの場合は次の手順です。
 
 ```sh
-cd /Users/mk/Documents/google-maps-extended/google-maps-railway-viewer
+cd ~/Documents/google-maps-extended/google-maps-railway-viewer
 source scripts/env.sh
 npm run dev
 ```
@@ -61,6 +69,8 @@ npm run dev
 経路用の接続情報は初回検索時に作り、SQLiteに保存します。次回起動でも同じデータ版なら再利用します。検索した駅・経由駅・日時の履歴は保存しません。鉄道データの外部API、ODPT登録、通常のGoogle APIキーへの切替は不要です。
 
 ## Google マップを表示する
+
+この設定は**ローカルでGoogle Mapsを試すための手順**です。公開デモはOpenStreetMapのためキー不要です。Demo Keyは試作用です。コードを取得する方は自身のDemo Keyを用意してください。
 
 一般的には本番利用に標準APIキーと課金設定を使いますが、試作にはGoogleが提供する **Maps Demo Key** も利用できます。2026-09-13に確認した公式案内では、課金情報を入力せず、地図・マーカー・ポリラインを試せます。試作限定で、利用上限があります。[Maps Demo Keyの案内](https://developers.google.com/maps/documentation/javascript/demo-key)
 
